@@ -2,6 +2,25 @@
 
 This guide defines the default push -> pull -> run workflow for this repository.
 
+## 0) Cloud prerequisites (CS149-compatible)
+
+- AWS region: `ap-southeast-4` (Asia Pacific - Melbourne).
+- Instance type: `trn2.3xlarge`.
+- Login user: `ubuntu`.
+- Key permissions on local machine:
+
+```bash
+chmod 400 /path/to/key_name.pem
+```
+
+- SSH with profiler port forwarding:
+
+```bash
+ssh -i /path/to/key_name.pem ubuntu@<public_dns_name> -L 3001:localhost:3001 -L 8086:localhost:8086
+```
+
+Those forwarded ports match the standard `neuron-profile` and InfluxDB defaults.
+
 ## 1) One-time host setup
 
 ```bash
@@ -17,6 +36,8 @@ What bootstrap does:
 - upgrades `pip/setuptools/wheel` inside the conda env
 - installs this project in editable mode (`pip install -e .`)
 - runs `scripts/validate_trainium_env.py`
+
+If conda is missing, bootstrap auto-installs Miniconda to `$HOME/miniconda3` by default.
 
 Manual equivalent:
 
@@ -82,3 +103,6 @@ python scripts/sync_results_s3.py --run-dir results/<run_id> --s3-uri s3://your-
 - S3 sync fails:
   - Check host IAM permissions for `s3:PutObject`.
   - Local artifacts remain intact even when uploads fail.
+- Cannot SSH with forwarded ports:
+  - Verify the instance security group allows SSH ingress from your IP.
+  - Reconnect using the exact `-L 3001` and `-L 8086` flags shown above.

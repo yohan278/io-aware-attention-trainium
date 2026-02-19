@@ -2,6 +2,8 @@
 
 IO-aware FlashAttention experiments targeting self-hosted AWS Trainium (Trn2 single-chip baseline).
 
+This repository is compatible with the CS149-style AWS setup (`ap-southeast-4`, `trn2.3xlarge`, Ubuntu SSH workflow with forwarded profiler ports).
+
 ## What this repository provides
 
 - Forward-only SDPA benchmark harness (`naive`, `tiled_online`, and a placeholder `tiled_online_dbuffer` variant).
@@ -40,6 +42,17 @@ python scripts/run_bench.py --config configs/benchmark/canonical.yaml --variant 
 ```
 
 See full host instructions in `docs/TRAINIUM_SELF_HOSTED.md`.
+
+## CS149 cloud compatibility notes
+
+- Region default in env template is `ap-southeast-4` (Melbourne).
+- Assumed instance type is `trn2.3xlarge`.
+- Assumed SSH login user is `ubuntu`.
+- For profiler UI access, connect with:
+
+```bash
+ssh -i /path/to/key.pem ubuntu@<public_dns_name> -L 3001:localhost:3001 -L 8086:localhost:8086
+```
 
 ## Conda environment files
 
