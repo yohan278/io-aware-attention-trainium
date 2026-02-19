@@ -1,0 +1,12 @@
+variant: naive
+device: cpu
+dtype: fp32
+causal: false
+warmup_iters: 1
+measure_iters: 2
+seed: 11
+shapes:
+  - batch: 1
+    heads: 2
+    seq_len: 16
+    head_dim: 32

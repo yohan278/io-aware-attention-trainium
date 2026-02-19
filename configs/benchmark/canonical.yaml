@@ -1,0 +1,32 @@
+variant: naive
+device: trainium
+dtype: bf16
+causal: false
+warmup_iters: 3
+measure_iters: 10
+seed: 17
+shapes:
+  - batch: 1
+    heads: 16
+    seq_len: 512
+    head_dim: 64
+  - batch: 1
+    heads: 16
+    seq_len: 1024
+    head_dim: 64
+  - batch: 1
+    heads: 16
+    seq_len: 2048
+    head_dim: 64
+  - batch: 1
+    heads: 16
+    seq_len: 4096
+    head_dim: 64
+  - batch: 1
+    heads: 16
+    seq_len: 2048
+    head_dim: 128
+  - batch: 1
+    heads: 32
+    seq_len: 2048
+    head_dim: 128
