@@ -1,0 +1,427 @@
+--- Output for src/Top/PEPartition/PEModule/ActUnit ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+
+Test Tanh
+12 ns output_port data = 0x10 0x10 0x10 0x0F0 0x10 0x0F0 0x10 0x10 0x0F1 0x0F0 0x0F0 0x10 0x10 0x10 0x0FC 0x0F3 
+12 ns expected_output data = 0x0FFF 0x0FFF 0x0FEB 0xF000 0x0FFF 0xF000 0x0FC3 0x0FFF 0xF0ED 0xF014 0xF000 0x0FFD 0x0FFF 0x0FFF 0xC61 0xF31B 
+	Average % Difference: 0.387573%
+	MSE %: 0.00561625%
+
+Test Silu
+17 ns output_port data = 0x0FC 0x67 0x60 0x5D 0x72 0x0 0x0FF 0x77 0x17 0x34 0x7D 0x0 0x0FD 0x4 0x5 0x30 
+17 ns expected_output data = 0xC10 0x66C1 0x5FD6 0x5D0A 0x71B5 0xD7 0xEFB 0x76A9 0x16FA 0x342C 0x7D6E 0xEF 0xCC9 0x3F4 0x4A5 0x304E 
+	Average % Difference: 0.511728%
+	MSE %: 0.0197008%
+
+Test Gelu
+19 ns output_port data = 0x0FE 0x67 0x60 0x5D 0x72 0x0 0x0FF 0x77 0x14 0x34 0x7D 0x0 0x0FF 0x2 0x3 0x30 
+19 ns expected_output data = 0xE69 0x66C1 0x5FD6 0x5D0A 0x71B5 0xEB 0x84 0x76A9 0x153C 0x3425 0x7D6E 0xF7 0xEA6 0x25C 0x2DA 0x303F 
+	Average % Difference: 1.23933%
+	MSE %: 0.0682846%
+
+Test Relu
+21 ns output_port data = 0x0 0x67 0x60 0x5D 0x72 0x0 0x0 0x77 0x14 0x34 0x7D 0x0 0x0 0x2 0x3 0x30 
+21 ns expected_output data = 0x0 0x66C1 0x5FD6 0x5D0A 0x71B5 0x0 0x0 0x76A9 0x153C 0x3425 0x7D6E 0x0 0x0 0x25C 0x2DA 0x303F 
+	Average % Difference: 0.694593%
+	MSE %: 0.0544745%
+
+
+SIMULATION DONE
+Matches: 4
+Mismatches: 0
+TEST PASSED
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/PEPartition/PEModule/PECore ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+ActPort Computed value = 21352 and expected value = 21375
+ActPort Computed value = 15836 and expected value = 15853
+ActPort Computed value = 16788 and expected value = 16806
+ActPort Computed value = 12216 and expected value = 12229
+ActPort Computed value = 21588 and expected value = 21612
+ActPort Computed value = 12387 and expected value = 12401
+ActPort Computed value = 15928 and expected value = 15946
+ActPort Computed value = 18400 and expected value = 18420
+ActPort Computed value = 14735 and expected value = 14751
+ActPort Computed value = 17456 and expected value = 17475
+ActPort Computed value = 13653 and expected value = 13668
+ActPort Computed value = 15788 and expected value = 15806
+ActPort Computed value = 20537 and expected value = 20559
+ActPort Computed value = 14680 and expected value = 14696
+ActPort Computed value = 16290 and expected value = 16308
+ActPort Computed value = 17062 and expected value = 17080
+Dest: Difference observed in compute Act and expected value 0.109132%
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/PEPartition/PEModule ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@12 ns De-Asserting reset
+    WRITE PEConfig: 0x10100000001 @ 0x400010
+    WRITE PEManager: 0x100 @ 0x400020
+    WRITE Weight: 0x0C74278675C7F32026BD421D788E1D68C @ 0x500000
+    WRITE Weight: 0x0D0319B6C21E7A2FDA174272E5EC23966 @ 0x500010
+    WRITE Weight: 0x5781547CB8E9DD33A331DDE2178B1B85 @ 0x500020
+    WRITE Weight: 0x4C8C4B8304BCB9614E92D9208D22BBEB @ 0x500030
+    WRITE Weight: 0x67AD5414A9D9B7200DC7A487C5BFA479 @ 0x500040
+    WRITE Weight: 0x69AB46F7D70083F70292B32C4A09CF2D @ 0x500050
+    WRITE Weight: 0x161F65749B261E3FD103A7F427208FCB @ 0x500060
+    WRITE Weight: 0x0AABCB5EFB2819ED0ED6A7A4AE1356000 @ 0x500070
+    WRITE Weight: 0x0F6D7D9415D2D4CDAC59C9EC4A9695EE4 @ 0x500080
+    WRITE Weight: 0x17899ACBF78E9E7F7F1519733E0DFD81 @ 0x500090
+    WRITE Weight: 0x0FCFD96D169A343A4ACC647814E3AD635 @ 0x5000A0
+    WRITE Weight: 0x5C0F148DE065D4848582459D58371BA5 @ 0x5000B0
+    WRITE Weight: 0x0CC77DBF7B30AE0F6A96684FC1E5515A8 @ 0x5000C0
+    WRITE Weight: 0x0C5AA491813F2CD9DC97FD011DF439320 @ 0x5000D0
+    WRITE Weight: 0x0B8E6F69A72129DD4520BE5B52C4EE908 @ 0x5000E0
+    WRITE Weight: 0x38B305DEDFD4E551679295D0AE2D9CD6 @ 0x5000F0
+    WRITE Input: 0x0D4C04352A0A882BF584169B29EE3E635 @ 0x600000
+    WRITE ActUnit Config: 0x103020001 @ 0x0800010
+    WRITE ActUnit Instructions: 0x40B030 @ 0x0800020
+    WRITE Start write:0x0 @ 0x0
+43 ns Dest: Received output port data:0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 
+Starting comparison with golden model
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999512 1.19268e-05%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+ Dut output, golden output and percentage difference: 1 0.999756 5.96192e-06%
+Max difference: 0.000488281
+
+Max difference: 0.000488281 is less than threshold: 0.1
+TESTBENCH PASSED
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/PEPartition ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+1.75
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+@162 ns AXI Manager has finished issuing AXI commands
+Design done result: 1
+Design output_port result: 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 0x10 
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/GBPartition/GBModule/NMP ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+8 ns Dest rva data = 0x40002000300000001
+8 ns RVA config matched
+30 ns - large buffer request sent:  - is_write: 0x0 memory_index: 0x1 vector_index: 0x0 timestep_index: 0x0
+37 ns - large buffer request sent:  - is_write: 0x1 memory_index: 0x1 vector_index: 0x0 timestep_index: 0x0
+Match idx 0: expected=0.75 actual=0.75 abs_err=0 pct_err=0%
+Match idx 1: expected=-0.4375 actual=-0.4375 abs_err=0 pct_err=0%
+Match idx 2: expected=-1.8125 actual=-1.8125 abs_err=0 pct_err=0%
+Match idx 3: expected=0.1875 actual=0.1875 abs_err=0 pct_err=0%
+Match idx 4: expected=0.25 actual=0.25 abs_err=0 pct_err=0%
+Match idx 5: expected=0.6875 actual=0.6875 abs_err=0 pct_err=0%
+Match idx 6: expected=1.5625 actual=1.625 abs_err=0.0625 pct_err=4%
+Match idx 7: expected=0.75 actual=0.8125 abs_err=0.0625 pct_err=8.33333%
+Match idx 8: expected=1.5 actual=1.5 abs_err=0 pct_err=0%
+Match idx 9: expected=-1.125 actual=-1.125 abs_err=0 pct_err=0%
+Match idx a: expected=0.3125 actual=0.3125 abs_err=0 pct_err=0%
+Match idx b: expected=1.125 actual=1.125 abs_err=0 pct_err=0%
+Match idx c: expected=0.25 actual=0.25 abs_err=0 pct_err=0%
+Match idx d: expected=-1.25 actual=-1.25 abs_err=0 pct_err=0%
+Match idx e: expected=-0.8125 actual=-0.875 abs_err=0.0625 pct_err=7.69231%
+Match idx f: expected=0.75 actual=0.8125 abs_err=0.0625 pct_err=8.33333%
+37 ns RMS write data matched
+39 ns Done signal issued !!!!
+85 ns - large buffer request sent:  - is_write: 0x0 memory_index: 0x2 vector_index: 0x0 timestep_index: 0x0
+93 ns - large buffer request sent:  - is_write: 0x1 memory_index: 0x2 vector_index: 0x0 timestep_index: 0x0
+Match idx 0: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 1: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 2: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 3: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 4: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 5: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 6: expected=0.4375 actual=0.4375 abs_err=0 pct_err=0%
+Match idx 7: expected=0.25 actual=0.25 abs_err=0 pct_err=0%
+Match idx 8: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 9: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx a: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx b: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx c: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx d: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx e: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx f: expected=0.125 actual=0.125 abs_err=0 pct_err=0%
+93 ns Softmax write data matched
+95 ns Done signal issued !!!!
+@10004 ns sc_stop
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/GBPartition/GBModule/GBCore ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+8 ns RVA read data = 0x1
+8 ns RVA config matched
+44 ns Large buffer bank 0 read matched
+46 ns Large buffer bank 1 read matched
+48 ns Large buffer bank 2 read matched
+50 ns Large buffer bank 3 read matched
+52 ns Large buffer bank 4 read matched
+54 ns Large buffer bank 5 read matched
+56 ns Large buffer bank 6 read matched
+58 ns Large buffer bank 7 read matched
+60 ns Large buffer bank 8 read matched
+62 ns Large buffer bank 9 read matched
+64 ns Large buffer bank a read matched
+66 ns Large buffer bank b read matched
+68 ns Large buffer bank c read matched
+70 ns Large buffer bank d read matched
+72 ns Large buffer bank e read matched
+74 ns Large buffer bank f read matched
+@504 ns All 10 bank reads completed
+@504 ns sc_stop
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/GBPartition/GBModule/GBControl ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+7 ns large buffer request sent:  -large buffer request wr: 0 - mem index: 0 - vector index: 0 - timestep index: 0
+10 ns Design data_out result 0x1 0x0 0x0 0x0 0x1 0x0 0x10 0x0 0x0B0 0x0 0x0 0x0 0x2 0x0 0x0 0x0 
+11 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x1 - timestep index: 0x0
+14 ns Design data_out result 0x3 0x0 0x0 0x0 0x0C1 0x0 0x11 0x0 0x0B0 0x0 0x0 0x0 0x2 0x0 0x0 0x0 
+15 ns PE_start signal issued!!!
+18 ns large buffer request sent:  -large buffer request wr: 0x1 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x0
+22 ns large buffer request sent:  -large buffer request wr: 0x1 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x0
+27 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x0
+124 nscheck for 2nd timestep
+126 ns Design data_out result 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+127 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x1 - timestep index: 0x0
+130 ns Design data_out result 0x3 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+132 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x1
+134 ns Design data_out result 0x3 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+135 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x1 - timestep index: 0x1
+138 ns Design data_out result 0x3 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+139 ns PE_start signal issued!!!
+142 ns large buffer request sent:  -large buffer request wr: 0x1 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x1
+146 ns large buffer request sent:  -large buffer request wr: 0x1 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x1
+151 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x0 - timestep index: 0x1
+250 ns Design data_out result 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+251 ns large buffer request sent:  -large buffer request wr: 0x0 - mem index: 0x0 - vector index: 0x1 - timestep index: 0x1
+254 ns Design data_out result 0x3 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+255 ns GBControl TB done !!!
+@1004 ns sc_stop
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/GBPartition/GBModule ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+    WRITE Config: 0x1 @ 0x400010
+    WRITE Config: 0x10001000000000101 @ 0x0C00010
+    WRITE softmax: 0x298E1EFC3652115C5D0340C6761D3767 @ 0x500000
+    WRITE Config: 0x10001000000000101 @ 0x0C00010
+    START NMP 0x0 @ 0x20
+37 ns Recevied GB Done = 1
+127 ns Comparing NMP output with tolerance...
+Match idx 0: expected=0.1875 actual=0.1875 abs_err=0 pct_err=0%
+Match idx 1: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 2: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 3: expected=0.5 actual=0.5 abs_err=0 pct_err=0%
+Match idx 4: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 5: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 6: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx 7: expected=0.0625 actual=0.0625 abs_err=0 pct_err=0%
+Match idx 8: expected=0.0625 actual=0.0625 abs_err=0 pct_err=0%
+Match idx 9: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx a: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx b: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx c: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx d: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx e: expected=0 actual=0 abs_err=0 pct_err=0%
+Match idx f: expected=0 actual=0 abs_err=0 pct_err=0%
+127 ns NMP output matched within tolerance
+    WRITE GBControl: 0x10001000000000101 @ 0x700010
+    START GBControl 0x0 @ 0x10
+140 ns Data out popped: 0x3 0x0 0x0 0x08 0x0 0x0 0x0 0x1 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+141 ns Recevied PE Start = 1
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top/GBPartition ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+1.75
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+84 ns Design done issued!!!
+136 ns Design data_out result:  0x3 0x0 0x0 0x08 0x0 0x0 0x0 0x1 0x1 0x0 0x0 0x0 0x0 0x0 0x0 0x0 
+137 ns PE Start signal isssued!!!
+Manager has finished issuing AXI Writes
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+
+--- Output for src/Top ---
+rm -rf *.o sim_* dump.vcd
+rm -rf build.log
+g++ -o sim_test -DHLS_ALGORITHMICC -Wall -Wno-unknown-pragmas -Wno-virtual-move-assign -Wno-unused-local-typedefs -std=c++11  -I. -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/tps/boost_1_64_0 -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/home/users/psmriti/cs217/solution-lab-4/src/include -I/home/users/psmriti/cs217/solution-lab-4/src -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib_connections/include -I/cad/mentor/2024.2_1/Mgc_home/shared/include -I/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/matchlib/cmod/include -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/cardano/lib/lnx64.o -I/cad/xilinx/vitis/2020.1/Vitis/2020.1/lib/lnx64.o  -L. -L/cad/mentor/2024.2_1/Mgc_home/shared/lib -L/cad/mentor/2024.2_1/Mgc_home/shared/pkgs/boostpp/pp/lib -DHLS_CATAPULT -DCONNECTIONS_ACCURATE_SIM -DSC_INCLUDE_DYNAMIC_PROCESSES testbench.cpp   -lstdc++ -lsystemc -lm -lpthread > build.log 2>&1
+./sim_test
+================================
+SETTING RANDOM SEED = 19650218
+================================
+1.75
+Connections Clock: tb.clk Period: 1 ns
+@2 ns Asserting reset
+@4 ns De-Asserting reset
+232 ns - Interrupt signal issued!
+233 ns - Interrupt signal issued!
+234 ns - Interrupt signal issued!
+235 ns - Interrupt signal issued!
+236 ns - Interrupt signal issued!
+237 ns - Interrupt signal issued!
+238 ns - Interrupt signal issued!
+239 ns - Interrupt signal issued!
+240 ns - Interrupt signal issued!
+241 ns - Interrupt signal issued!
+243 ns - Interrupt signal issued!
+244 ns - Interrupt signal issued!
+245 ns - Interrupt signal issued!
+246 ns - Interrupt signal issued!
+247 ns - Interrupt signal issued!
+248 ns - Interrupt signal issued!
+249 ns - Interrupt signal issued!
+250 ns - Interrupt signal issued!
+251 ns - Interrupt signal issued!
+252 ns - Interrupt signal issued!
+323 ns Manager has finished issuing AXI Writes
+
+Info: /OSCI/SystemC: Simulation stopped by user.
+TESTBENCH PASS
+
+        SystemC 2.3.3-Accellera --- Jun  7 2022 13:10:00
+        Copyright (c) 1996-2018 by all Contributors,
+        ALL RIGHTS RESERVED
+

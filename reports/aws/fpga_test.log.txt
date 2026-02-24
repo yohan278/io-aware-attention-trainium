@@ -1,0 +1,11 @@
+---- System Initialization (bar_handle: 0) ----
+
+---- Running AXI Write/Read Test ----
+Read value matches the expected = 0x00000000_00000001_01000000_08000003 at 0x33500010
+Read value matches the expected = 0x10101010_10101010_10101010_10101010 at 0x33500000
+Read value matches the expected = 0xD4C04352_A0A882BF_584169B2_9EE3E635 at 0x34600000
+
+---- Reading Interrupt Cycles Counter ----
+Interrupt cycles = 20
+
+---- TEST PASSED ----
