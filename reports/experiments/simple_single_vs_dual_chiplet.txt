@@ -1,0 +1,13 @@
+Command:
+python3 chiplet_proxy_poc.py --seq-len 16 --d-model 8 --d-value 8 --seed 7
+
+Output:
+=== Chiplet Proxy Attention PoC ===
+shape: S=16, D=8, Dv=8
+max |baseline - proxy|: 2.082e-17
+state words exchanged: 320
+score-only words exchanged (naive): 256
+score+value words exchanged (naive): 2304
+score-only/state exchange ratio: 0.80x
+score+value/state exchange ratio: 7.20x
+PASS
