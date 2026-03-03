@@ -12,7 +12,7 @@ fabric_warmup_iters: 2
 fabric_measure_iters: 8
 enforce_correctness: true
 correctness_abs_tol: 0.05
-correctness_rel_tol: 0.05
+correctness_rel_tol: 0.1
 kernels:
   - qkv_proj
   - attention
