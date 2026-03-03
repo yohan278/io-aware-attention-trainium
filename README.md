@@ -73,6 +73,10 @@ CONDA_ENV_NAME=fa-trn2 bash scripts/bootstrap_trainium_host.sh
   - `torchrun --nproc_per_node=2 scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium --distributed`
 - Plot kernel-study outputs:
   - `python scripts/plot_kernel_study.py --metrics-csv <run_dir>/metrics.csv --out-dir results/plots --prefix <name>`
+- Phase-aware prefill/decode study:
+  - `torchrun --nproc_per_node=2 scripts/run_phase_study.py --config configs/experiments/trn2_phase_study.yaml --device trainium --distributed`
+- Plot phase-study outputs:
+  - `python scripts/plot_phase_study.py --metrics-csv <run_dir>/metrics.csv --out-dir results/plots --prefix <name>`
 - Validation:
   - `python scripts/validate_trainium_env.py`
 - Optional S3 sync:
@@ -174,6 +178,87 @@ Interpretation note:
 ![Trn2 dual-real throughput](results/plots/trn2_dual_real_final_throughput.png)
 ![Trn2 dual-real speedup](results/plots/trn2_dual_real_final_speedup.png)
 
+## Phase-aware experiment: where dual-die helps
+
+### Objective
+
+Measure end-to-end prefill and decode behavior to answer:
+
+1. When does dual-die hurt because tensor-parallel communication dominates?
+2. When does dual-die help because request/KV-cache sharding increases service throughput?
+
+### Phase study design
+
+- Setups:
+  - `single_die`
+  - `dual_die_tensor_optimized` (real 2-rank collectives on Trn2)
+  - `dual_die_request_sharded` (requests and KV cache partitioned across ranks)
+- Prefill:
+  - Long contexts `2048 / 4096 / 8192`
+  - Shape: `batch=2, model_dim=1024, num_heads=16`
+- Decode:
+  - Contexts `2048 / 4096`
+  - Concurrency sweep `4 / 8 / 16`
+  - `decode_steps=8`
+- Metrics:
+  - `latency_ms_p50`, `latency_ms_p90`
+  - `compute_ms_p50`, `communication_ms_p50`, `overlap_pct_p50`
+  - `throughput_tokens_per_s`
+  - `kv_cache_bytes_per_rank`
+  - `achieved_link_gbps_p50`, `link_utilization_pct_p50`, `fabric_peak_gbps`
+  - `max_abs_err`, robust `max_rel_err`
+
+### Reproduce phase run
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_phase_study.yaml \
+  --device trainium \
+  --distributed \
+  --output-dir results/trn2-phase-real-final-rerun
+```
+
+```bash
+python scripts/plot_phase_study.py \
+  --metrics-csv results/trn2-phase-real-final-rerun/<run_id>/metrics.csv \
+  --out-dir results/plots \
+  --prefix trn2_phase_real_final
+```
+
+### Latest phase run summary
+
+Full run id: `run_20260303T234000Z` (executed March 3, 2026 on Trn2).
+
+- Prefill (`batch=2`, long context):
+  - `dual_die_request_sharded` improved p50 latency vs single by:
+    - `1.61x` at `seq_len=2048`
+    - `1.56x` at `seq_len=4096`
+    - `1.58x` at `seq_len=8192`
+  - `dual_die_tensor_optimized` remained slower than single (`0.40x` to `0.55x` relative speedup) due communication.
+- Decode throughput (tokens/s):
+  - `dual_die_request_sharded` vs single:
+    - `+4.2%` to `+66.5%` at `context_len=2048`
+    - `+2.0%` to `+71.4%` at `context_len=4096`
+  - `dual_die_tensor_optimized` is communication-bound (`~5%` to `11%` of single throughput).
+- Throughput-at-SLO (`1000 ms` p90 budget on this decode-step workload):
+  - `context_len=2048`: request-sharded `13,578` vs single `13,031` tokens/s
+  - `context_len=4096`: request-sharded `7,873` vs single `7,715` tokens/s
+- Break-even (`compute + comm - overlap <= single latency`):
+  - Tensor-parallel rows need large additional overlap to tie single (see `break_even_summary.csv`).
+  - Request-sharded rows consistently satisfy break-even with `communication_ms_p50 ~= 0`.
+
+Interpretation:
+
+- Dual-die benefit shows up primarily in decode service throughput when KV cache and requests are sharded across dies.
+- Tensor-parallel decode remains limited by collective communication in this setup.
+
+### Committed phase-study plots
+
+![Trn2 phase prefill latency](results/plots/trn2_phase_real_final_prefill_latency.png)
+![Trn2 phase decode throughput](results/plots/trn2_phase_real_final_decode_throughput.png)
+![Trn2 phase decode SLO](results/plots/trn2_phase_real_final_decode_slo.png)
+![Trn2 phase break-even](results/plots/trn2_phase_real_final_break_even.png)
+
 ## Artifact schema
 
 Each run directory under `results/` contains:
@@ -181,6 +266,8 @@ Each run directory under `results/` contains:
 - `metrics.csv`
 - `metrics.jsonl`
 - `fabric_calibration.csv` and `fabric_calibration.json` (when distributed calibration is enabled)
+- `decode_slo_summary.csv` and `decode_slo_summary.md` (phase study)
+- `break_even_summary.csv` and `break_even_summary.md` (phase study)
 - `run_manifest.json` with:
   - `git_commit`
   - `timestamp_utc`
