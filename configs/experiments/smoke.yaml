@@ -1,0 +1,22 @@
+device: cpu
+dtype: fp32
+warmup_iters: 1
+measure_iters: 2
+seed: 7
+causal_attention: false
+kernels:
+  - qkv_proj
+  - attention
+  - mlp
+  - rmsnorm
+  - out_proj
+setups:
+  - single_die
+  - dual_die_naive
+  - dual_die_optimized
+shapes:
+  - batch: 1
+    seq_len: 16
+    model_dim: 32
+    num_heads: 4
+    mlp_ratio: 4

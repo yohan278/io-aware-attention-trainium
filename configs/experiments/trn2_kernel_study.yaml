@@ -1,0 +1,27 @@
+device: trainium
+dtype: bf16
+warmup_iters: 2
+measure_iters: 6
+seed: 17
+causal_attention: false
+kernels:
+  - qkv_proj
+  - attention
+  - mlp
+  - rmsnorm
+  - out_proj
+setups:
+  - single_die
+  - dual_die_naive
+  - dual_die_optimized
+shapes:
+  - batch: 1
+    seq_len: 512
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - batch: 1
+    seq_len: 1024
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4

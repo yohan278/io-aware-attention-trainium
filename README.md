@@ -69,6 +69,8 @@ CONDA_ENV_NAME=fa-trn2 bash scripts/bootstrap_trainium_host.sh
 
 - Benchmark:
   - `python scripts/run_bench.py --config <yaml> --variant <naive|tiled_online> --device trainium --output-dir <path>`
+- 5-kernel scaling study (single-die vs dual-die emulation):
+  - `python scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium`
 - Validation:
   - `python scripts/validate_trainium_env.py`
 - Optional S3 sync:
