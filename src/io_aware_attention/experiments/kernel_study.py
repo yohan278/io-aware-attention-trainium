@@ -1332,6 +1332,9 @@ def _calibrate_ping_pong(
     measure_iters: int,
     ctx: DistributedContext,
 ) -> list[dict[str, float]]:
+    # Trainium/XLA does not support alternating collective roots in the same synchronized
+    # step sequence (src=0 then src=1) without MPMD failures, so we model round-trip
+    # ping-pong as two consecutive root-stable broadcasts from rank 0.
     entries: list[dict[str, float]] = []
     for message_bytes in message_sizes:
         distributed_barrier(ctx)
@@ -1351,10 +1354,12 @@ def _calibrate_ping_pong(
                 dtype_bytes=dtype_bytes,
             )
             if ctx.rank == 1:
+                payload.fill_(0)
+            if ctx.rank == 0:
                 payload.fill_(2)
             _collective_broadcast_(
                 payload,
-                src=1,
+                src=0,
                 metrics=warmup_metrics,
                 ctx=ctx,
                 device=device,
@@ -1377,10 +1382,12 @@ def _calibrate_ping_pong(
                 dtype_bytes=dtype_bytes,
             )
             if ctx.rank == 1:
+                payload.fill_(0)
+            if ctx.rank == 0:
                 payload.fill_(4)
             _collective_broadcast_(
                 payload,
-                src=1,
+                src=0,
                 metrics=metrics,
                 ctx=ctx,
                 device=device,
