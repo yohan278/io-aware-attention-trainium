@@ -1343,8 +1343,7 @@ def _calibrate_ping_pong(
 
         for _ in range(warmup_iters):
             warmup_metrics = CommMetrics()
-            if ctx.rank == 0:
-                payload.fill_(1)
+            payload = payload + 1
             _collective_broadcast_(
                 payload,
                 src=0,
@@ -1353,10 +1352,7 @@ def _calibrate_ping_pong(
                 device=device,
                 dtype_bytes=dtype_bytes,
             )
-            if ctx.rank == 1:
-                payload.fill_(0)
-            if ctx.rank == 0:
-                payload.fill_(2)
+            payload = payload + 1
             _collective_broadcast_(
                 payload,
                 src=0,
@@ -1371,8 +1367,7 @@ def _calibrate_ping_pong(
         for _ in range(measure_iters):
             metrics = CommMetrics()
             start = time.perf_counter()
-            if ctx.rank == 0:
-                payload.fill_(3)
+            payload = payload + 1
             _collective_broadcast_(
                 payload,
                 src=0,
@@ -1381,10 +1376,7 @@ def _calibrate_ping_pong(
                 device=device,
                 dtype_bytes=dtype_bytes,
             )
-            if ctx.rank == 1:
-                payload.fill_(0)
-            if ctx.rank == 0:
-                payload.fill_(4)
+            payload = payload + 1
             _collective_broadcast_(
                 payload,
                 src=0,
