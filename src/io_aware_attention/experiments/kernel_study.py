@@ -1703,9 +1703,6 @@ def run_kernel_study(
                         eps=_relative_error_eps(config.dtype),
                     )
 
-                    max_abs_err = _distributed_max_scalar(max_abs_err, device=device, ctx=dist_ctx)
-                    max_rel_err = _distributed_max_scalar(max_rel_err, device=device, ctx=dist_ctx)
-
                     if config.enforce_correctness and setup != "single_die":
                         if max_abs_err > abs_tol or max_rel_err > rel_tol:
                             raise RuntimeError(
