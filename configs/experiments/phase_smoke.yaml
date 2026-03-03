@@ -1,0 +1,33 @@
+device: cpu
+dtype: fp32
+seed: 7
+warmup_iters: 1
+measure_iters: 2
+distributed: false
+dual_world_size: 2
+setups:
+  - single_die
+enable_fabric_calibration: false
+enforce_correctness: true
+correctness_abs_tol: 0.001
+correctness_rel_tol: 0.001
+
+prefill:
+  - batch: 1
+    seq_len: 16
+    model_dim: 32
+    num_heads: 4
+    mlp_ratio: 2
+
+decode:
+  - concurrency: 2
+    context_len: 8
+    decode_steps: 4
+    model_dim: 32
+    num_heads: 4
+    mlp_ratio: 2
+
+decode_slo_ms:
+  - 0.5
+  - 1.0
+  - 2.0

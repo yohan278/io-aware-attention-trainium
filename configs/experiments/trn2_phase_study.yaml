@@ -1,0 +1,107 @@
+device: trainium
+dtype: bf16
+seed: 123
+warmup_iters: 2
+measure_iters: 8
+distributed: true
+dual_world_size: 2
+setups:
+  - single_die
+  - dual_die_tensor_optimized
+  - dual_die_request_sharded
+enable_fabric_calibration: true
+fabric_message_sizes:
+  - 1024
+  - 4096
+  - 16384
+  - 65536
+  - 262144
+  - 1048576
+fabric_warmup_iters: 2
+fabric_measure_iters: 8
+enforce_correctness: true
+correctness_abs_tol: 0.05
+correctness_rel_tol: 0.1
+
+# Prefill surrogate: projection + MLP-heavy path over long context lengths.
+prefill:
+  - batch: 2
+    seq_len: 2048
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - batch: 2
+    seq_len: 4096
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - batch: 2
+    seq_len: 8192
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - batch: 2
+    seq_len: 16384
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+
+# Decode steady-state with continuous batching proxy and KV-cache sharding.
+decode:
+  - concurrency: 8
+    context_len: 2048
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 16
+    context_len: 2048
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 32
+    context_len: 2048
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 8
+    context_len: 4096
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 16
+    context_len: 4096
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 32
+    context_len: 4096
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 8
+    context_len: 8192
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 16
+    context_len: 8192
+    decode_steps: 64
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+
+decode_slo_ms:
+  - 2.0
+  - 4.0
+  - 8.0
+  - 12.0
+  - 16.0
+  - 24.0
+  - 32.0
