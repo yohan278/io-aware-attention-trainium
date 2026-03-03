@@ -69,8 +69,8 @@ CONDA_ENV_NAME=fa-trn2 bash scripts/bootstrap_trainium_host.sh
 
 - Benchmark:
   - `python scripts/run_bench.py --config <yaml> --variant <naive|tiled_online> --device trainium --output-dir <path>`
-- 5-kernel scaling study (single-die vs dual-die emulation):
-  - `python scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium`
+- 5-kernel scaling study (single-die vs real dual-rank collectives on Trn2):
+  - `torchrun --nproc_per_node=2 scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium --distributed`
 - Validation:
   - `python scripts/validate_trainium_env.py`
 - Optional S3 sync:
@@ -82,6 +82,7 @@ Each run directory under `results/` contains:
 
 - `metrics.csv`
 - `metrics.jsonl`
+- `fabric_calibration.csv` and `fabric_calibration.json` (when distributed calibration is enabled)
 - `run_manifest.json` with:
   - `git_commit`
   - `timestamp_utc`
@@ -93,3 +94,5 @@ Each run directory under `results/` contains:
   - `benchmark_config_path`
   - `variant`
   - `seed`
+
+`metrics.csv` includes p50 compute time, p50 communication time, overlap percentage, achieved link bandwidth, and link utilization against calibrated fabric peak.

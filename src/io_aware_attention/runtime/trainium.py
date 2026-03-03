@@ -4,6 +4,7 @@ import importlib.metadata
 import os
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 from typing import Any
 
 import torch
@@ -78,3 +79,94 @@ def get_torch_neuronx_version() -> str:
     except importlib.metadata.PackageNotFoundError:
         return "not-installed"
 
+
+@dataclass(frozen=True)
+class DistributedContext:
+    enabled: bool
+    rank: int = 0
+    world_size: int = 1
+    local_rank: int = 0
+    backend: str = "none"
+
+    @property
+    def is_primary(self) -> bool:
+        return self.rank == 0
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"Environment variable {name} must be an integer, got {raw!r}") from exc
+
+
+def init_distributed_context(
+    *,
+    device_name: str,
+    enable_distributed: bool,
+    expected_world_size: int | None = None,
+) -> DistributedContext:
+    rank = _env_int("RANK", 0)
+    world_size = _env_int("WORLD_SIZE", 1)
+    local_rank = _env_int("LOCAL_RANK", rank)
+
+    if not enable_distributed:
+        return DistributedContext(enabled=False, rank=rank, world_size=world_size, local_rank=local_rank)
+    if world_size < 2:
+        raise RuntimeError(
+            "Distributed mode requested but WORLD_SIZE < 2. Launch with torchrun --nproc_per_node=2."
+        )
+
+    try:
+        import torch.distributed as dist
+    except Exception as exc:  # pragma: no cover - depends on runtime install
+        raise RuntimeError("torch.distributed is unavailable in this environment.") from exc
+
+    backend = "gloo"
+    init_method = "env://"
+    if device_name == "trainium":
+        try:
+            import torch_xla.distributed.xla_backend  # type: ignore # noqa: F401
+        except Exception as exc:  # pragma: no cover - exercised on Trainium host
+            raise RuntimeError(
+                "Failed to import torch_xla.distributed.xla_backend for XLA collectives."
+            ) from exc
+        backend = "xla"
+        init_method = "xla://"
+
+    if not dist.is_initialized():
+        dist.init_process_group(backend=backend, init_method=init_method)
+
+    resolved_rank = int(dist.get_rank())
+    resolved_world_size = int(dist.get_world_size())
+    if expected_world_size is not None and resolved_world_size != expected_world_size:
+        raise RuntimeError(
+            f"Expected distributed world_size={expected_world_size}, got {resolved_world_size}."
+        )
+    return DistributedContext(
+        enabled=True,
+        rank=resolved_rank,
+        world_size=resolved_world_size,
+        local_rank=local_rank,
+        backend=backend,
+    )
+
+
+def distributed_barrier(ctx: DistributedContext) -> None:
+    if not ctx.enabled:
+        return
+    import torch.distributed as dist
+
+    dist.barrier()
+
+
+def finalize_distributed_context(ctx: DistributedContext) -> None:
+    if not ctx.enabled:
+        return
+    import torch.distributed as dist
+
+    if dist.is_initialized():
+        dist.destroy_process_group()

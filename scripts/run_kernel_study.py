@@ -42,6 +42,11 @@ def parse_args() -> argparse.Namespace:
         default=REPO_ROOT / "results",
         help="Directory where run artifacts are created.",
     )
+    parser.add_argument(
+        "--distributed",
+        action="store_true",
+        help="Enable real 2-rank execution with XLA collectives (launch with torchrun --nproc_per_node=2).",
+    )
     return parser.parse_args()
 
 
@@ -54,9 +59,11 @@ def main() -> int:
         output_dir=args.output_dir,
         device_override=args.device,
         setups_override=args.setups,
+        distributed_override=args.distributed,
     )
-    print(f"Kernel study run complete: {run_dir}")
-    print(json.dumps(records, indent=2))
+    if records:
+        print(f"Kernel study run complete: {run_dir}")
+        print(json.dumps(records, indent=2))
     return 0
 
 

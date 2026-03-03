@@ -3,7 +3,11 @@ dtype: fp32
 warmup_iters: 1
 measure_iters: 2
 seed: 7
+distributed: false
+dual_world_size: 2
 causal_attention: false
+enable_fabric_calibration: false
+enforce_correctness: true
 kernels:
   - qkv_proj
   - attention

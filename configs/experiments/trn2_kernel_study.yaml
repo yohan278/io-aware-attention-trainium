@@ -3,7 +3,16 @@ dtype: bf16
 warmup_iters: 2
 measure_iters: 6
 seed: 17
+distributed: true
+dual_world_size: 2
 causal_attention: false
+enable_fabric_calibration: true
+fabric_message_sizes: [1024, 4096, 16384, 65536, 262144, 1048576]
+fabric_warmup_iters: 2
+fabric_measure_iters: 8
+enforce_correctness: true
+correctness_abs_tol: 0.01
+correctness_rel_tol: 0.02
 kernels:
   - qkv_proj
   - attention
