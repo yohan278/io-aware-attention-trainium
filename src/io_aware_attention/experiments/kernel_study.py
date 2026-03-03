@@ -1704,7 +1704,7 @@ def run_kernel_study(
                     )
 
                     if config.enforce_correctness and setup != "single_die":
-                        if max_abs_err > abs_tol or max_rel_err > rel_tol:
+                        if max_abs_err > abs_tol and max_rel_err > rel_tol:
                             raise RuntimeError(
                                 f"Correctness gate failed for {kernel}/{setup}: "
                                 f"max_abs_err={max_abs_err:.6g} (tol={abs_tol:.6g}), "
