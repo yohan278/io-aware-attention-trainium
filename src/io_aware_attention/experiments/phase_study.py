@@ -236,6 +236,22 @@ def _dtype_bytes(dtype: torch.dtype) -> int:
     raise ValueError(f"Unsupported dtype: {dtype}")
 
 
+def _sample_on_cpu_then_move(device: Any) -> bool:
+    device_str = str(device).lower()
+    return device_str.startswith("xla") or "privateuseone" in device_str
+
+
+def _randn(
+    shape: tuple[int, ...],
+    *,
+    dtype: torch.dtype,
+    device: Any,
+) -> torch.Tensor:
+    if _sample_on_cpu_then_move(device):
+        return torch.randn(shape, dtype=dtype, device="cpu").to(device)
+    return torch.randn(shape, dtype=dtype, device=device)
+
+
 def _timestamp_utc() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -302,10 +318,10 @@ def _make_weights(
 ) -> dict[str, torch.Tensor]:
     mlp_dim = model_dim * mlp_ratio
     return {
-        "w_qkv": torch.randn((model_dim, 3 * model_dim), dtype=dtype, device=device),
-        "w_out": torch.randn((model_dim, model_dim), dtype=dtype, device=device),
-        "w1": torch.randn((model_dim, mlp_dim), dtype=dtype, device=device),
-        "w2": torch.randn((mlp_dim, model_dim), dtype=dtype, device=device),
+        "w_qkv": _randn((model_dim, 3 * model_dim), dtype=dtype, device=device),
+        "w_out": _randn((model_dim, model_dim), dtype=dtype, device=device),
+        "w1": _randn((model_dim, mlp_dim), dtype=dtype, device=device),
+        "w2": _randn((mlp_dim, model_dim), dtype=dtype, device=device),
     }
 
 
@@ -821,7 +837,7 @@ def run_phase_study(
             if torch.cuda.is_available():
                 torch.cuda.manual_seed_all(seed)
 
-            x_global = torch.randn((shape.batch, shape.seq_len, shape.model_dim), dtype=dtype, device=device)
+            x_global = _randn((shape.batch, shape.seq_len, shape.model_dim), dtype=dtype, device=device)
             weights = _make_weights(
                 model_dim=shape.model_dim,
                 mlp_ratio=shape.mlp_ratio,
@@ -942,17 +958,17 @@ def run_phase_study(
             )
             dh = shape.model_dim // shape.num_heads
 
-            x_steps_global = torch.randn(
+            x_steps_global = _randn(
                 (shape.decode_steps, shape.concurrency, 1, shape.model_dim),
                 dtype=dtype,
                 device=device,
             )
-            k_cache_global = torch.randn(
+            k_cache_global = _randn(
                 (shape.concurrency, shape.num_heads, shape.context_len, dh),
                 dtype=dtype,
                 device=device,
             )
-            v_cache_global = torch.randn(
+            v_cache_global = _randn(
                 (shape.concurrency, shape.num_heads, shape.context_len, dh),
                 dtype=dtype,
                 device=device,
