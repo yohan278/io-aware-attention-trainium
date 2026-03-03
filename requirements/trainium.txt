@@ -1,6 +1,8 @@
 # Pinned baseline for self-hosted Trainium experiments.
 # If your host AMI already includes these packages, keep versions aligned with that AMI.
 --extra-index-url https://pip.repos.neuron.amazonaws.com
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
 torch-neuronx==2.5.1.2.6.0
 torch-xla==2.5.1
-neuronx-cc==2.15.128.0
+neuronx-cc==2.23.6484.0
