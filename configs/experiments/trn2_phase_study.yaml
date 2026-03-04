@@ -23,7 +23,7 @@ enforce_correctness: true
 correctness_abs_tol: 0.05
 correctness_rel_tol: 0.1
 
-# Prefill surrogate: projection + MLP-heavy path over long context lengths.
+# Prefill surrogate: long-context sequence sweep (2k/4k/8k/16k).
 prefill:
   - batch: 2
     seq_len: 2048
@@ -38,51 +38,77 @@ prefill:
   - batch: 2
     seq_len: 8192
     model_dim: 1024
-    num_heads: 16
+    num_heads: 8
     mlp_ratio: 4
+  - batch: 2
+    seq_len: 16384
+    model_dim: 512
+    num_heads: 1
+    mlp_ratio: 4
+    setups:
+      - single_die
+      - dual_die_request_sharded
 
-# Decode steady-state with continuous batching proxy and KV-cache sharding.
+# Decode steady-state with continuous batching + KV-cache sharding proxy.
 decode:
-  - concurrency: 4
-    context_len: 2048
-    decode_steps: 8
-    model_dim: 1024
-    num_heads: 16
-    mlp_ratio: 4
   - concurrency: 8
     context_len: 2048
-    decode_steps: 8
+    decode_steps: 16
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
   - concurrency: 16
     context_len: 2048
-    decode_steps: 8
+    decode_steps: 16
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
-  - concurrency: 4
-    context_len: 4096
-    decode_steps: 8
+  - concurrency: 32
+    context_len: 2048
+    decode_steps: 16
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
   - concurrency: 8
     context_len: 4096
-    decode_steps: 8
+    decode_steps: 16
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
   - concurrency: 16
     context_len: 4096
-    decode_steps: 8
+    decode_steps: 16
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 32
+    context_len: 4096
+    decode_steps: 16
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 8
+    context_len: 8192
+    decode_steps: 16
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 16
+    context_len: 8192
+    decode_steps: 16
+    model_dim: 1024
+    num_heads: 16
+    mlp_ratio: 4
+  - concurrency: 32
+    context_len: 8192
+    decode_steps: 16
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
 
 decode_slo_ms:
+  - 250.0
   - 500.0
   - 1000.0
   - 2000.0
   - 4000.0
-  - 8000.0

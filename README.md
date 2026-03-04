@@ -194,12 +194,13 @@ Measure end-to-end prefill and decode behavior to answer:
   - `dual_die_tensor_optimized` (real 2-rank collectives on Trn2)
   - `dual_die_request_sharded` (requests and KV cache partitioned across ranks)
 - Prefill:
-  - Long contexts `2048 / 4096 / 8192`
-  - Shape: `batch=2, model_dim=1024, num_heads=16`
+  - Long contexts `2048 / 4096 / 8192 / 16384`
+  - Default Trn2 config keeps strict correctness enabled and runs `seq_len=16384`
+    with `single_die + dual_die_request_sharded` (tensor-optimized 16k can be setup-sensitive).
 - Decode:
-  - Contexts `2048 / 4096`
-  - Concurrency sweep `4 / 8 / 16`
-  - `decode_steps=8`
+  - Contexts `2048 / 4096 / 8192`
+  - Concurrency sweep `8 / 16 / 32`
+  - `decode_steps=16`
 - Metrics:
   - `latency_ms_p50`, `latency_ms_p90`
   - `compute_ms_p50`, `communication_ms_p50`, `overlap_pct_p50`
@@ -207,6 +208,8 @@ Measure end-to-end prefill and decode behavior to answer:
   - `kv_cache_bytes_per_rank`
   - `achieved_link_gbps_p50`, `link_utilization_pct_p50`, `fabric_peak_gbps`
   - `max_abs_err`, robust `max_rel_err`
+  - Per-kernel phase breakdown (`kernel_phase_metrics.csv/jsonl`) for
+    `qkv_proj / attention / mlp / rmsnorm / out_proj`
 
 ### Reproduce phase run
 
@@ -221,6 +224,7 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
 ```bash
 python scripts/plot_phase_study.py \
   --metrics-csv results/trn2-phase-real-final-rerun/<run_id>/metrics.csv \
+  --kernel-phase-csv results/trn2-phase-real-final-rerun/<run_id>/kernel_phase_metrics.csv \
   --out-dir results/plots \
   --prefix trn2_phase_real_final
 ```
@@ -268,6 +272,7 @@ Each run directory under `results/` contains:
 - `fabric_calibration.csv` and `fabric_calibration.json` (when distributed calibration is enabled)
 - `decode_slo_summary.csv` and `decode_slo_summary.md` (phase study)
 - `break_even_summary.csv` and `break_even_summary.md` (phase study)
+- `kernel_phase_metrics.csv` and `kernel_phase_metrics.jsonl` (phase study)
 - `run_manifest.json` with:
   - `git_commit`
   - `timestamp_utc`

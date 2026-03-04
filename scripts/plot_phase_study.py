@@ -19,7 +19,10 @@ COLORS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Plot prefill/decode phase-study outputs from metrics.csv and decode_slo_summary.csv."
+        description=(
+            "Plot prefill/decode phase-study outputs from metrics.csv, decode_slo_summary.csv, "
+            "and optional kernel_phase_metrics.csv."
+        )
     )
     parser.add_argument(
         "--metrics-csv",
@@ -32,6 +35,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional path to decode_slo_summary.csv. Defaults to sibling of metrics.csv.",
+    )
+    parser.add_argument(
+        "--kernel-phase-csv",
+        type=Path,
+        default=None,
+        help="Optional path to kernel_phase_metrics.csv. Defaults to sibling of metrics.csv.",
     )
     parser.add_argument(
         "--break-even-csv",
@@ -228,16 +237,83 @@ def _plot_break_even(df: pd.DataFrame, out_path: Path) -> None:
     plt.close(fig)
 
 
+def _plot_kernel_phase_speedup(df: pd.DataFrame, out_path: Path) -> None:
+    if df.empty:
+        return
+
+    kernels = ["qkv_proj", "attention", "mlp", "rmsnorm", "out_proj"]
+    phases = ["prefill", "decode"]
+    key_cols = ["kernel", "batch", "seq_len", "context_len", "decode_steps", "model_dim", "num_heads"]
+    dual_setups = [setup for setup in SETUP_ORDER if setup != "single_die"]
+
+    fig, axes = plt.subplots(1, len(phases), figsize=(7 * len(phases), 5), constrained_layout=True)
+    if len(phases) == 1:
+        axes = [axes]
+
+    width = 0.34
+    for ax, phase in zip(axes, phases):
+        phase_df = df[df["phase"] == phase].copy()
+        if phase_df.empty:
+            ax.set_visible(False)
+            continue
+
+        base = phase_df[phase_df["setup"] == "single_die"][key_cols + ["latency_ms_p50"]]
+        if base.empty:
+            ax.set_visible(False)
+            continue
+
+        x = np.arange(len(kernels))
+        for idx, setup in enumerate(dual_setups):
+            dual = phase_df[phase_df["setup"] == setup][key_cols + ["latency_ms_p50"]]
+            if dual.empty:
+                continue
+
+            merged = dual.merge(base, on=key_cols, how="inner", suffixes=("_dual", "_single"))
+            if merged.empty:
+                continue
+
+            merged["speedup"] = merged["latency_ms_p50_single"] / merged["latency_ms_p50_dual"]
+            by_kernel = merged.groupby("kernel", as_index=False)["speedup"].median()
+            y = []
+            for kernel in kernels:
+                row = by_kernel[by_kernel["kernel"] == kernel]
+                y.append(float(row.iloc[0]["speedup"]) if not row.empty else np.nan)
+
+            offset = (idx - (len(dual_setups) - 1) / 2.0) * width
+            ax.bar(
+                x + offset,
+                y,
+                width=width,
+                color=COLORS[setup],
+                label=_setup_label(setup),
+            )
+
+        ax.axhline(1.0, color="black", linestyle="--", linewidth=1)
+        ax.set_xticks(x)
+        ax.set_xticklabels(kernels, rotation=20, ha="right")
+        ax.set_ylabel("single/dual latency ratio (p50)")
+        ax.set_title(f"{phase} kernel speedup (>1 dual is faster)")
+        ax.grid(axis="y", alpha=0.25)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, ncols=2, loc="upper center", bbox_to_anchor=(0.5, 1.05))
+    fig.savefig(out_path, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> int:
     args = parse_args()
     if not args.metrics_csv.exists():
         raise SystemExit(f"metrics.csv not found: {args.metrics_csv}")
 
     decode_slo_csv = args.decode_slo_csv or (args.metrics_csv.parent / "decode_slo_summary.csv")
+    kernel_phase_csv = args.kernel_phase_csv or (args.metrics_csv.parent / "kernel_phase_metrics.csv")
     break_even_csv = args.break_even_csv or (args.metrics_csv.parent / "break_even_summary.csv")
 
     df = pd.read_csv(args.metrics_csv)
     slo_df = _safe_read_csv(decode_slo_csv)
+    kernel_phase_df = _safe_read_csv(kernel_phase_csv)
     break_even_df = _safe_read_csv(break_even_csv)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -245,17 +321,21 @@ def main() -> int:
     prefill_path = args.out_dir / f"{args.prefix}_prefill_latency.png"
     decode_path = args.out_dir / f"{args.prefix}_decode_throughput.png"
     slo_path = args.out_dir / f"{args.prefix}_decode_slo.png"
+    kernel_phase_path = args.out_dir / f"{args.prefix}_kernel_phase_speedup.png"
     break_even_path = args.out_dir / f"{args.prefix}_break_even.png"
 
     _plot_prefill_latency(df=df, out_path=prefill_path)
     _plot_decode_throughput(df=df, out_path=decode_path)
     _plot_decode_slo(df=slo_df, out_path=slo_path)
+    _plot_kernel_phase_speedup(df=kernel_phase_df, out_path=kernel_phase_path)
     _plot_break_even(df=break_even_df, out_path=break_even_path)
 
     print(prefill_path)
     print(decode_path)
     if not slo_df.empty:
         print(slo_path)
+    if not kernel_phase_df.empty:
+        print(kernel_phase_path)
     if not break_even_df.empty:
         print(break_even_path)
     return 0
