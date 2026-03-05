@@ -541,26 +541,28 @@ def _prefill_step_tensor(
 
     q, k, v = _split_qkv(qkv, num_heads=num_heads)
     if attention_optimized:
-        run_attention = lambda: ks._attention_dual_dist_tiled_merge(
-            q,
-            k,
-            v,
-            causal=False,
-            dtype_bytes=dtype_bytes,
-            ctx=ctx,
-            device=device,
-            pipelined=True,
-        )
+        def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
+            return ks._attention_dual_dist_tiled_merge(
+                q,
+                k,
+                v,
+                causal=False,
+                dtype_bytes=dtype_bytes,
+                ctx=ctx,
+                device=device,
+                pipelined=True,
+            )
     else:
-        run_attention = lambda: ks._attention_dual_dist_naive(
-            q,
-            k,
-            v,
-            causal=False,
-            dtype_bytes=dtype_bytes,
-            ctx=ctx,
-            device=device,
-        )
+        def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
+            return ks._attention_dual_dist_naive(
+                q,
+                k,
+                v,
+                causal=False,
+                dtype_bytes=dtype_bytes,
+                ctx=ctx,
+                device=device,
+            )
 
     attn, c2, s2 = _timed_kernel(
         name="attention",
@@ -721,26 +723,28 @@ def _decode_step_tensor(
     v_cache = _append_cache_with_window(v_cache, v_new, max_cache_len=max_cache_len)
 
     if attention_optimized:
-        run_attention = lambda: ks._attention_dual_dist_tiled_merge(
-            q,
-            k_cache,
-            v_cache,
-            causal=False,
-            dtype_bytes=dtype_bytes,
-            ctx=ctx,
-            device=device,
-            pipelined=False,
-        )
+        def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
+            return ks._attention_dual_dist_tiled_merge(
+                q,
+                k_cache,
+                v_cache,
+                causal=False,
+                dtype_bytes=dtype_bytes,
+                ctx=ctx,
+                device=device,
+                pipelined=False,
+            )
     else:
-        run_attention = lambda: ks._attention_dual_dist_naive(
-            q,
-            k_cache,
-            v_cache,
-            causal=False,
-            dtype_bytes=dtype_bytes,
-            ctx=ctx,
-            device=device,
-        )
+        def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
+            return ks._attention_dual_dist_naive(
+                q,
+                k_cache,
+                v_cache,
+                causal=False,
+                dtype_bytes=dtype_bytes,
+                ctx=ctx,
+                device=device,
+            )
 
     attn, c2, s2 = _timed_kernel(
         name="attention",
@@ -1367,19 +1371,21 @@ def run_phase_study(
                     continue
 
                 if setup == "single_die":
-                    runner = lambda: _prefill_step_single(x_global, weights, num_heads=shape.num_heads)
+                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                        return _prefill_step_single(x_global, weights, num_heads=shape.num_heads)
                     tokens = shape.batch * shape.seq_len
                     kv_cache_bytes = 0.0
                 elif setup == "dual_die_tensor_optimized":
-                    runner = lambda: _prefill_step_tensor(
-                        x_global,
-                        weights,
-                        num_heads=shape.num_heads,
-                        attention_optimized=tensor_attention_optimized_prefill,
-                        dtype_bytes=dtype_bytes,
-                        ctx=ctx,
-                        device=device,
-                    )
+                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                        return _prefill_step_tensor(
+                            x_global,
+                            weights,
+                            num_heads=shape.num_heads,
+                            attention_optimized=tensor_attention_optimized_prefill,
+                            dtype_bytes=dtype_bytes,
+                            ctx=ctx,
+                            device=device,
+                        )
                     tokens = shape.batch * shape.seq_len
                     kv_cache_bytes = 0.0
                 else:
@@ -1387,7 +1393,8 @@ def run_phase_study(
                     b_start = ctx.rank * local_batch
                     b_end = b_start + local_batch
                     x_local = x_global[b_start:b_end]
-                    runner = lambda: _prefill_step_request_sharded(x_local, weights, num_heads=shape.num_heads)
+                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                        return _prefill_step_request_sharded(x_local, weights, num_heads=shape.num_heads)
                     tokens = shape.batch * shape.seq_len
                     kv_cache_bytes = 0.0
 

@@ -150,7 +150,7 @@ def gather_rank_strings(
     dist.all_gather(payloads, payload)
     mark_step_if_needed(device)
     sync_if_needed(device)
-    return [_decode_string_tensor(l, p) for l, p in zip(lengths, payloads)]
+    return [_decode_string_tensor(length_item, payload_item) for length_item, payload_item in zip(lengths, payloads)]
 
 
 @dataclass(frozen=True)

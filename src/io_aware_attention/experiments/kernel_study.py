@@ -411,8 +411,8 @@ def _attention_dual_optimized_local(
 
     p0 = torch.exp(stable0)
     p1 = torch.exp(stable1)
-    l = p0.sum(dim=-1) + p1.sum(dim=-1)
-    out = (torch.matmul(p0, v0.float()) + torch.matmul(p1, v1.float())) / l.unsqueeze(-1).clamp_min(1e-9)
+    denom = p0.sum(dim=-1) + p1.sum(dim=-1)
+    out = (torch.matmul(p0, v0.float()) + torch.matmul(p1, v1.float())) / denom.unsqueeze(-1).clamp_min(1e-9)
 
     b, h, s, d = q.shape
     scalars_per_query = 2 + d
