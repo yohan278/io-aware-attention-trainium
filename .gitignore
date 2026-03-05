@@ -9,7 +9,3 @@ __pycache__/
 
 results/*
 !results/.gitkeep
-!results/plots/
-results/plots/*
-!results/plots/trn2_dual_real_final_*.png
-!results/plots/trn2_phase_real_final_*.png

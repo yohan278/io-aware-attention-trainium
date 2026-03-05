@@ -1,56 +1,39 @@
-# Trainium Self-Hosted Runbook (Trn2 Single Chip)
+# Trainium Self-Hosted Runbook
 
-This guide defines the default push -> pull -> run workflow for this repository.
+This guide describes a clean push -> pull -> run workflow on an AWS Trainium host.
 
-## 0) Cloud prerequisites (CS149-compatible)
+## 1) Prerequisites
 
-- AWS region: `ap-southeast-4` (Asia Pacific - Melbourne).
-- Instance type: `trn2.3xlarge`.
-- Login user: `ubuntu`.
-- Key permissions on local machine:
+- A Neuron-enabled Trn2 instance.
+- SSH access (`ubuntu` user is common on Ubuntu AMIs).
+- A repository clone on the host.
+- Optional: local SSH port forwarding for profiling UIs.
+
+Example SSH with forwarded ports:
 
 ```bash
-chmod 400 /path/to/key_name.pem
+ssh -i /path/to/key.pem ubuntu@<public-dns> -L 3001:localhost:3001 -L 8086:localhost:8086
 ```
 
-- SSH with profiler port forwarding:
+## 2) One-Time Host Bootstrap
 
 ```bash
-ssh -i /path/to/key_name.pem ubuntu@<public_dns_name> -L 3001:localhost:3001 -L 8086:localhost:8086
-```
-
-Those forwarded ports match the standard `neuron-profile` and InfluxDB defaults.
-
-## 1) One-time host setup
-
-```bash
-git clone <your-repo-url>
+git clone <repo-url>
 cd io-aware-attention-trainium
 bash scripts/bootstrap_trainium_host.sh
 ```
 
-What bootstrap does:
+Bootstrap will:
 
-- creates/reuses conda env `ioattn-trn2` (or `CONDA_ENV_NAME`)
-- updates the env from `conda/environment.trainium.yml`
-- upgrades `pip/setuptools/wheel` inside the conda env
-- installs this project in editable mode (`pip install -e .`)
-- runs `scripts/validate_trainium_env.py`
+- install/reuse Miniconda (if needed)
+- create/update conda env (`ioattn-trn2` by default)
+- install project dependencies
+- install this repository in editable mode
+- run environment validation
 
-If conda is missing, bootstrap auto-installs Miniconda to `$HOME/miniconda3` by default.
+## 3) Daily Workflow
 
-Manual equivalent:
-
-```bash
-conda env create -f conda/environment.trainium.yml || conda env update -f conda/environment.trainium.yml --prune
-conda activate ioattn-trn2
-python -m pip install -e .
-python scripts/validate_trainium_env.py
-```
-
-## 2) Daily workflow
-
-On local machine:
+On local development machine:
 
 ```bash
 git add .
@@ -58,51 +41,47 @@ git commit -m "your change"
 git push
 ```
 
-On Trn2 host:
+On Trainium host:
 
 ```bash
 cd io-aware-attention-trainium
 git pull
 conda activate ioattn-trn2
 python scripts/validate_trainium_env.py
-python scripts/run_bench.py --config configs/benchmark/canonical.yaml --variant tiled_online --device trainium
 ```
 
-## 3) Profiling run
+Then run one or more experiments:
+
+```bash
+python scripts/run_bench.py --config configs/benchmark/canonical.yaml --variant tiled_online --device trainium
+torchrun --nproc_per_node=2 scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium --distributed
+torchrun --nproc_per_node=2 scripts/run_phase_study.py --config configs/experiments/trn2_phase_study.yaml --device trainium --distributed
+```
+
+## 4) Profiling
 
 ```bash
 conda activate ioattn-trn2
 python scripts/profile_trainium.py --config configs/benchmark/canonical.yaml --variant tiled_online --set-neuron-profile-env
 ```
 
-The command writes regular benchmark artifacts while enabling profiling environment hints.
+## 5) Artifacts
 
-## 4) Results
-
-Every run writes to `results/<run_id>/`:
-
-- `metrics.csv`
-- `metrics.jsonl`
-- `run_manifest.json`
-
-Optional S3 archival:
+Each run writes `results/<run_id>/` with metrics and manifest files.  
+Optional archival:
 
 ```bash
-python scripts/sync_results_s3.py --run-dir results/<run_id> --s3-uri s3://your-bucket/flashattention-runs
+python scripts/sync_results_s3.py --run-dir results/<run_id> --s3-uri s3://your-bucket/path
 ```
 
-## 5) Troubleshooting
+## 6) Troubleshooting
 
-- Validation says Trainium runtime missing:
-  - Ensure you are on a Neuron-enabled host/AMI.
-  - Re-run `bash scripts/bootstrap_trainium_host.sh`.
-  - Confirm the conda env is active: `conda activate ioattn-trn2`.
-- Benchmark fails on `trainium` device:
-  - Run `python scripts/validate_trainium_env.py` first.
-  - Confirm `conda/environment.trainium.yml` and `requirements/trainium.txt` align with your Neuron SDK/AMI.
-- S3 sync fails:
-  - Check host IAM permissions for `s3:PutObject`.
-  - Local artifacts remain intact even when uploads fail.
-- Cannot SSH with forwarded ports:
-  - Verify the instance security group allows SSH ingress from your IP.
-  - Reconnect using the exact `-L 3001` and `-L 8086` flags shown above.
+- Trainium runtime missing:
+  - verify Neuron-enabled AMI/runtime
+  - re-run `bash scripts/bootstrap_trainium_host.sh`
+- Validation fails:
+  - check env activation (`conda activate ioattn-trn2`)
+  - check `conda/environment.trainium.yml` compatibility with host runtime
+- SSH/port-forward issues:
+  - check security group ingress
+  - confirm forwarded port flags are present

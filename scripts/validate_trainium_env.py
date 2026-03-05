@@ -17,8 +17,8 @@ def main() -> int:
     print("== Trainium Environment Validation ==")
     errors: list[str] = []
     warnings: list[str] = []
-    expected_region = os.getenv("EXPECTED_AWS_REGION", "ap-southeast-4")
-    expected_instance = os.getenv("EXPECTED_INSTANCE_TYPE", "trn2.3xlarge")
+    expected_region = os.getenv("EXPECTED_AWS_REGION")
+    expected_instance = os.getenv("EXPECTED_INSTANCE_TYPE")
 
     if sys.version_info < (3, 10):
         errors.append(
@@ -51,22 +51,20 @@ def main() -> int:
         warnings.append(
             f"Expected trn2 for this project, found '{instance_type}'. Runs may not match your benchmark target."
         )
-    elif instance_type != "unknown" and instance_type != expected_instance:
+    elif expected_instance and instance_type != "unknown" and instance_type != expected_instance:
         warnings.append(
-            f"Expected instance '{expected_instance}' for CS149-compatible runs, found '{instance_type}'."
+            f"EXPECTED_INSTANCE_TYPE is '{expected_instance}', found '{instance_type}'."
         )
 
     aws_region = os.getenv("AWS_REGION")
     if aws_region is None:
-        warnings.append(
-            f"AWS_REGION is not set. Recommended region for CS149-compatible runs is '{expected_region}'."
-        )
-    elif aws_region != expected_region:
-        warnings.append(
-            f"AWS_REGION is '{aws_region}', expected '{expected_region}' for CS149-compatible setup."
-        )
-    else:
+        warnings.append("AWS_REGION is not set.")
+    elif expected_region and aws_region != expected_region:
+        warnings.append(f"AWS_REGION is '{aws_region}', expected '{expected_region}'.")
+    elif expected_region:
         print(f"[ok] AWS_REGION={aws_region}")
+    else:
+        print(f"[info] AWS_REGION={aws_region}")
 
     visible_cores = os.getenv("NEURON_RT_VISIBLE_CORES")
     if visible_cores is None:
