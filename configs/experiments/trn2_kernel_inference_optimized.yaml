@@ -16,6 +16,7 @@ correctness_abs_tol: 0.005
 correctness_rel_tol: 0.02
 
 # Grouped distributed-merge attention to reduce collective count.
+attention_pipelined: false
 attention_tile_q: 64
 attention_tile_k: 128
 attention_reduce_group_k: 8

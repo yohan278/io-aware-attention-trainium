@@ -28,8 +28,8 @@ correctness_rel_tol: 0.02
 tensor_attention_tile_q: 64
 tensor_attention_tile_k: 128
 tensor_attention_reduce_group_k: 4
-tensor_attention_pipelined_prefill: true
-tensor_attention_pipelined_decode: true
+tensor_attention_pipelined_prefill: false
+tensor_attention_pipelined_decode: false
 tensor_attention_naive_threshold: 0
 
 prefill:

@@ -14,6 +14,7 @@ def test_load_kernel_study_smoke_config() -> None:
     assert cfg.distributed is False
     assert cfg.dual_world_size == 2
     assert cfg.enable_fabric_calibration is False
+    assert cfg.attention_pipelined is True
     assert cfg.attention_tile_q == 64
     assert cfg.attention_tile_k == 128
     assert cfg.attention_reduce_group_k == 1

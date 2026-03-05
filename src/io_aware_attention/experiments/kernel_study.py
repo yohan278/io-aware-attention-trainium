@@ -137,6 +137,7 @@ class KernelStudyConfig:
     fabric_message_sizes: list[int]
     fabric_warmup_iters: int
     fabric_measure_iters: int
+    attention_pipelined: bool
     attention_tile_q: int
     attention_tile_k: int
     attention_reduce_group_k: int
@@ -168,6 +169,7 @@ class KernelStudyConfig:
             ],
             fabric_warmup_iters=int(raw.get("fabric_warmup_iters", 2)),
             fabric_measure_iters=int(raw.get("fabric_measure_iters", 8)),
+            attention_pipelined=bool(raw.get("attention_pipelined", True)),
             attention_tile_q=int(raw.get("attention_tile_q", 64)),
             attention_tile_k=int(raw.get("attention_tile_k", 128)),
             attention_reduce_group_k=int(raw.get("attention_reduce_group_k", 1)),
@@ -1190,6 +1192,7 @@ def _build_runner(
     dtype_bytes: int,
     dist_ctx: DistributedContext,
     device: Any,
+    attention_pipelined: bool = True,
     attention_tile_q: int = 64,
     attention_tile_k: int = 128,
     attention_reduce_group_k: int = 1,
@@ -1270,7 +1273,7 @@ def _build_runner(
                 dtype_bytes=dtype_bytes,
                 ctx=dist_ctx,
                 device=device,
-                pipelined=True,
+                pipelined=attention_pipelined,
                 tile_q=attention_tile_q,
                 tile_k=attention_tile_k,
                 reduce_group_k=attention_reduce_group_k,
@@ -1878,6 +1881,7 @@ def run_kernel_study(
                     dtype_bytes=dtype_bytes,
                     dist_ctx=dist_ctx,
                     device=device,
+                    attention_pipelined=config.attention_pipelined,
                     attention_tile_q=config.attention_tile_q,
                     attention_tile_k=config.attention_tile_k,
                     attention_reduce_group_k=config.attention_reduce_group_k,
@@ -1907,6 +1911,7 @@ def run_kernel_study(
                         dtype_bytes=dtype_bytes,
                         dist_ctx=dist_ctx,
                         device=device,
+                        attention_pipelined=config.attention_pipelined,
                         attention_tile_q=config.attention_tile_q,
                         attention_tile_k=config.attention_tile_k,
                         attention_reduce_group_k=config.attention_reduce_group_k,
@@ -2029,6 +2034,7 @@ def run_kernel_study(
                     "correctness_abs_tol": abs_tol,
                     "correctness_rel_tol": rel_tol,
                     "fabric_peak_gbps": float(fabric_summary.get("peak_gbps", 0.0)),
+                    "attention_pipelined": config.attention_pipelined,
                     "attention_tile_q": config.attention_tile_q,
                     "attention_tile_k": config.attention_tile_k,
                     "attention_reduce_group_k": config.attention_reduce_group_k,
@@ -2064,6 +2070,7 @@ def run_kernel_once_for_testing(
         dtype_bytes=dtype_bytes,
         dist_ctx=DistributedContext(enabled=False),
         device=device,
+        attention_pipelined=True,
         attention_tile_q=64,
         attention_tile_k=128,
         attention_reduce_group_k=1,
