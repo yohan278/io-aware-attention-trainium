@@ -6,7 +6,13 @@ from typing import Literal
 
 import yaml
 
-KernelVariant = Literal["naive", "tiled_online", "tiled_online_dbuffer"]
+KernelVariant = Literal[
+    "naive",
+    "tiled_online",
+    "tiled_online_dbuffer",
+    "tiled_online_dist_merge_sync",
+    "tiled_online_dist_merge_pipelined",
+]
 DeviceType = Literal["cpu", "trainium"]
 DType = Literal["bf16", "fp32"]
 
@@ -60,7 +66,13 @@ class BenchmarkConfig:
         return cfg
 
     def validate(self) -> None:
-        if self.variant not in {"naive", "tiled_online", "tiled_online_dbuffer"}:
+        if self.variant not in {
+            "naive",
+            "tiled_online",
+            "tiled_online_dbuffer",
+            "tiled_online_dist_merge_sync",
+            "tiled_online_dist_merge_pipelined",
+        }:
             raise ValueError(f"Unsupported variant: {self.variant}")
         if self.device not in {"cpu", "trainium"}:
             raise ValueError(f"Unsupported device: {self.device}")
@@ -83,4 +95,3 @@ def load_benchmark_config(path: str | Path) -> BenchmarkConfig:
     if "shapes" not in raw:
         raise ValueError(f"Missing required key 'shapes' in {config_path}")
     return BenchmarkConfig.from_dict(raw)
-

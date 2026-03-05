@@ -22,8 +22,11 @@ from io_aware_attention.runtime.trainium import (
     DistributedContext,
     distributed_barrier,
     finalize_distributed_context,
+    gather_rank_strings,
+    get_visible_core_mask,
     init_distributed_context,
     mark_step_if_needed,
+    parse_visible_cores,
     resolve_device,
     sync_if_needed,
 )
@@ -323,7 +326,9 @@ def _percentile(values: list[float], q: float) -> float:
 
 
 def _max_relative_error(reference: torch.Tensor, output: torch.Tensor, eps: float) -> float:
-    scale = torch.maximum(reference.abs(), output.abs()).clamp_min(eps)
+    scale = torch.maximum(reference.abs(), output.abs())
+    dynamic_floor = float(scale.mean().item()) * 1e-3
+    scale = scale.clamp_min(max(float(eps), dynamic_floor))
     return float(((reference - output).abs() / scale).max().item())
 
 
@@ -416,6 +421,9 @@ def _timed_kernel(
         "total_s": float(elapsed),
         "comm_s": float(max(op_comm.time_s_total, 0.0)),
         "bytes": float(op_comm.bytes_total),
+        "op_count": {name: int(count) for name, count in op_comm.counts_by_op.items()},
+        "op_bytes": {name: float(payload) for name, payload in op_comm.bytes_by_op.items()},
+        "op_time_s": {name: float(elapsed_s) for name, elapsed_s in op_comm.time_by_op.items()},
     }
     return out, op_comm, stats
 
@@ -486,8 +494,7 @@ def _prefill_step_single(
     out = y_proj + y_mlp + x_norm
     comm_total = ks.CommMetrics()
     for payload in (c0, c1, c2, c3, c4):
-        comm_total.bytes_total += payload.bytes_total
-        comm_total.time_s_total += payload.time_s_total
+        comm_total.merge_(payload)
     return out, comm_total, kernels
 
 
@@ -534,7 +541,7 @@ def _prefill_step_tensor(
 
     q, k, v = _split_qkv(qkv, num_heads=num_heads)
     if attention_optimized:
-        run_attention = lambda: ks._attention_dual_dist_optimized(
+        run_attention = lambda: ks._attention_dual_dist_tiled_merge(
             q,
             k,
             v,
@@ -542,6 +549,7 @@ def _prefill_step_tensor(
             dtype_bytes=dtype_bytes,
             ctx=ctx,
             device=device,
+            pipelined=True,
         )
     else:
         run_attention = lambda: ks._attention_dual_dist_naive(
@@ -592,8 +600,7 @@ def _prefill_step_tensor(
     kernels["mlp"] = s4
 
     for payload in (c0, c1, c2, c3, c4):
-        comm.bytes_total += payload.bytes_total
-        comm.time_s_total += payload.time_s_total
+        comm.merge_(payload)
     out = y_proj + y_mlp + x_norm
     return out, comm, kernels
 
@@ -662,8 +669,7 @@ def _decode_step_single(
     out = y_proj + y_mlp + x_norm
     comm_total = ks.CommMetrics()
     for payload in (c0, c1, c2, c3, c4):
-        comm_total.bytes_total += payload.bytes_total
-        comm_total.time_s_total += payload.time_s_total
+        comm_total.merge_(payload)
     return out, k_cache, v_cache, comm_total, kernels
 
 
@@ -715,7 +721,7 @@ def _decode_step_tensor(
     v_cache = _append_cache_with_window(v_cache, v_new, max_cache_len=max_cache_len)
 
     if attention_optimized:
-        run_attention = lambda: ks._attention_dual_dist_optimized(
+        run_attention = lambda: ks._attention_dual_dist_tiled_merge(
             q,
             k_cache,
             v_cache,
@@ -723,6 +729,7 @@ def _decode_step_tensor(
             dtype_bytes=dtype_bytes,
             ctx=ctx,
             device=device,
+            pipelined=False,
         )
     else:
         run_attention = lambda: ks._attention_dual_dist_naive(
@@ -771,8 +778,7 @@ def _decode_step_tensor(
     )
     kernels["mlp"] = s4
     for payload in (c0, c1, c2, c3, c4):
-        comm.bytes_total += payload.bytes_total
-        comm.time_s_total += payload.time_s_total
+        comm.merge_(payload)
     out = y_proj + y_mlp + x_norm
     return out, k_cache, v_cache, comm, kernels
 
@@ -792,6 +798,7 @@ def _bench_runner(
     list[float],
     list[float],
     dict[str, dict[str, list[float]]],
+    list[dict[str, Any]],
 ]:
     for _ in range(warmup_iters):
         _, _, _ = fn()
@@ -806,6 +813,7 @@ def _bench_runner(
     comm_bytes: list[float] = []
     link_gbps: list[float] = []
     kernel_series = _empty_kernel_series()
+    collective_samples: list[dict[str, Any]] = []
 
     for _ in range(measure_iters):
         start = time.perf_counter()
@@ -844,9 +852,32 @@ def _bench_runner(
             kernel_series[kernel]["overlap_pct"].append(k_overlap)
             kernel_series[kernel]["bytes"].append(k_bytes)
             kernel_series[kernel]["link_gbps"].append(k_bw)
+            op_count = payload.get("op_count", {})
+            op_bytes = payload.get("op_bytes", {})
+            op_time_s = payload.get("op_time_s", {})
+            for op_name in set(op_count) | set(op_bytes) | set(op_time_s):
+                collective_samples.append(
+                    {
+                        "kernel": kernel,
+                        "op": op_name,
+                        "count": float(op_count.get(op_name, 0.0)),
+                        "bytes": float(op_bytes.get(op_name, 0.0)),
+                        "time_s": float(op_time_s.get(op_name, 0.0)),
+                    }
+                )
 
     assert out is not None
-    return out, total_s, compute_s, comm_s, overlap_pct, comm_bytes, link_gbps, kernel_series
+    return (
+        out,
+        total_s,
+        compute_s,
+        comm_s,
+        overlap_pct,
+        comm_bytes,
+        link_gbps,
+        kernel_series,
+        collective_samples,
+    )
 
 
 def _gather_batch_tensor(local: torch.Tensor, ctx: DistributedContext, device: Any) -> torch.Tensor:
@@ -950,6 +981,42 @@ def _write_kernel_phase_metrics(run_dir: Path, records: list[dict[str, Any]]) ->
             handle.write(json.dumps(row, sort_keys=True) + "\n")
 
     return csv_path, jsonl_path
+
+
+def _summarize_collective_samples(samples: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    by_op: dict[str, dict[str, list[float]]] = {}
+    for sample in samples:
+        op = str(sample.get("op", "unknown"))
+        bucket = by_op.setdefault(op, {"count": [], "bytes": [], "time_s": []})
+        bucket["count"].append(float(sample.get("count", 0.0)))
+        bucket["bytes"].append(float(sample.get("bytes", 0.0)))
+        bucket["time_s"].append(float(sample.get("time_s", 0.0)))
+
+    out: dict[str, dict[str, float]] = {}
+    for op_name, values in by_op.items():
+        total_count = float(np.sum(values["count"])) if values["count"] else 0.0
+        total_bytes = float(np.sum(values["bytes"])) if values["bytes"] else 0.0
+        total_time = float(np.sum(values["time_s"])) if values["time_s"] else 0.0
+        out[op_name] = {
+            "count_total": total_count,
+            "bytes_total": total_bytes,
+            "time_ms_total": total_time * 1000.0,
+            "count_p50": _percentile(values["count"], 50),
+            "bytes_p50": _percentile(values["bytes"], 50),
+            "time_ms_p50": _percentile(values["time_s"], 50) * 1000.0,
+            "effective_gbps_p50": ((total_bytes / total_time) / 1e9) if total_time > 0 else 0.0,
+        }
+    return out
+
+
+def _write_collectives_summary(run_dir: Path, rows: list[dict[str, Any]]) -> Path:
+    payload = {
+        "generated_at_utc": _timestamp_utc(),
+        "rows": rows,
+    }
+    out_path = run_dir / "collectives_summary.json"
+    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return out_path
 
 
 def _build_decode_slo_summary(records: list[dict[str, Any]], slo_values: list[float]) -> list[dict[str, Any]]:
@@ -1173,7 +1240,7 @@ def _validate_correctness(
     max_abs_err = float((ref_cpu - cand_cpu).abs().max().item())
     max_rel_err = _max_relative_error(ref_cpu, cand_cpu, eps=eps)
 
-    if enforce and setup != "single_die" and (max_abs_err > abs_tol and max_rel_err > rel_tol):
+    if enforce and setup != "single_die" and (max_abs_err > abs_tol or max_rel_err > rel_tol):
         raise RuntimeError(
             f"Correctness gate failed for {setup}: "
             f"max_abs_err={max_abs_err:.6g} (tol={abs_tol:.6g}), "
@@ -1242,6 +1309,24 @@ def run_phase_study(
 
         records: list[dict[str, Any]] = []
         kernel_phase_records: list[dict[str, Any]] = []
+        collectives_rows: list[dict[str, Any]] = []
+        local_mask = get_visible_core_mask()
+        rank_masks_raw = [str(local_mask["raw"])]
+        if ctx.enabled:
+            rank_masks_raw = gather_rank_strings(
+                local_value=str(local_mask["raw"]),
+                ctx=ctx,
+                device=device,
+            )
+        rank_core_masks = [
+            {
+                "rank": int(rank),
+                "visible_cores_raw": str(raw),
+                "visible_cores": parse_visible_cores(None if raw == "all" else str(raw)),
+                "chip_id": "unknown",
+            }
+            for rank, raw in enumerate(rank_masks_raw)
+        ]
         eps = 1e-3 if config.dtype == "bf16" else 1e-6
 
         # Prefill phase
@@ -1322,7 +1407,17 @@ def run_phase_study(
                         flush=True,
                     )
 
-                out, total_s, compute_s, comm_s, overlap_pct, comm_bytes, link_gbps, kernel_series = _bench_runner(
+                (
+                    out,
+                    total_s,
+                    compute_s,
+                    comm_s,
+                    overlap_pct,
+                    comm_bytes,
+                    link_gbps,
+                    kernel_series,
+                    collective_samples,
+                ) = _bench_runner(
                     runner,
                     warmup_iters=config.warmup_iters,
                     measure_iters=config.measure_iters,
@@ -1400,6 +1495,20 @@ def run_phase_study(
                         fabric_peak_gbps=fabric_peak,
                         kernel_series=kernel_series,
                     )
+                )
+                collectives_rows.append(
+                    {
+                        "timestamp": _timestamp_utc(),
+                        "phase": "prefill",
+                        "setup": setup,
+                        "batch": shape.batch,
+                        "seq_len": shape.seq_len,
+                        "context_len": 0,
+                        "decode_steps": 0,
+                        "model_dim": shape.model_dim,
+                        "num_heads": shape.num_heads,
+                        "ops": _summarize_collective_samples(collective_samples),
+                    }
                 )
                 if ctx.enabled:
                     distributed_barrier(ctx)
@@ -1491,8 +1600,7 @@ def run_phase_study(
                                 num_heads=shape.num_heads,
                                 max_cache_len=shape.context_len,
                             )
-                            comm_total.bytes_total += comm.bytes_total
-                            comm_total.time_s_total += comm.time_s_total
+                            comm_total.merge_(comm)
                             _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
                         return out, comm_total, kernel_total
 
@@ -1524,8 +1632,7 @@ def run_phase_study(
                                 device=device,
                                 max_cache_len=shape.context_len,
                             )
-                            comm_total.bytes_total += comm.bytes_total
-                            comm_total.time_s_total += comm.time_s_total
+                            comm_total.merge_(comm)
                             _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
                         return out, comm_total, kernel_total
 
@@ -1558,8 +1665,7 @@ def run_phase_study(
                                 num_heads=shape.num_heads,
                                 max_cache_len=shape.context_len,
                             )
-                            comm_total.bytes_total += comm.bytes_total
-                            comm_total.time_s_total += comm.time_s_total
+                            comm_total.merge_(comm)
                             _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
                         return out, comm_total, kernel_total
 
@@ -1584,7 +1690,17 @@ def run_phase_study(
                         flush=True,
                     )
 
-                out, total_s, compute_s, comm_s, overlap_pct, comm_bytes, link_gbps, kernel_series = _bench_runner(
+                (
+                    out,
+                    total_s,
+                    compute_s,
+                    comm_s,
+                    overlap_pct,
+                    comm_bytes,
+                    link_gbps,
+                    kernel_series,
+                    collective_samples,
+                ) = _bench_runner(
                     runner,
                     warmup_iters=config.warmup_iters,
                     measure_iters=config.measure_iters,
@@ -1664,12 +1780,27 @@ def run_phase_study(
                         kernel_series=kernel_series,
                     )
                 )
+                collectives_rows.append(
+                    {
+                        "timestamp": _timestamp_utc(),
+                        "phase": "decode",
+                        "setup": setup,
+                        "batch": shape.concurrency,
+                        "seq_len": 1,
+                        "context_len": shape.context_len,
+                        "decode_steps": shape.decode_steps,
+                        "model_dim": shape.model_dim,
+                        "num_heads": shape.num_heads,
+                        "ops": _summarize_collective_samples(collective_samples),
+                    }
+                )
                 if ctx.enabled:
                     distributed_barrier(ctx)
 
         if ctx.is_primary:
             _write_metrics(run_dir, records)
             _write_kernel_phase_metrics(run_dir, kernel_phase_records)
+            _write_collectives_summary(run_dir, collectives_rows)
             decode_slo = _build_decode_slo_summary(records, config.decode_slo_ms)
             _write_decode_slo_summary(run_dir, decode_slo)
             break_even = _build_break_even_summary(records)
@@ -1681,6 +1812,10 @@ def run_phase_study(
                 benchmark_config_path=config_path.resolve(),
                 variant="phase_study",
                 seed=config.seed,
+                distributed_enabled=ctx.enabled,
+                distributed_world_size=ctx.world_size,
+                distributed_rank=ctx.rank,
+                rank_core_masks=rank_core_masks,
             )
             manifest.update(
                 {

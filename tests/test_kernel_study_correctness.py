@@ -25,3 +25,10 @@ def test_dual_die_modes_match_single_die() -> None:
 
         assert torch.allclose(out_naive, ref, atol=1e-4, rtol=1e-4), kernel
         assert torch.allclose(out_opt, ref, atol=1e-4, rtol=1e-4), kernel
+
+
+def test_single_die_native_attention_matches_single_die() -> None:
+    shape = KernelShape(batch=1, seq_len=8, model_dim=16, num_heads=4, mlp_ratio=4)
+    ref = run_kernel_once_for_testing("attention", "single_die", shape, dtype_name="fp32", seed=13)
+    native = run_kernel_once_for_testing("attention", "single_die_native", shape, dtype_name="fp32", seed=13)
+    assert torch.allclose(native, ref, atol=1e-4, rtol=1e-4)

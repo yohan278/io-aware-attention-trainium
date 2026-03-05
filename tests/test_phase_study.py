@@ -40,6 +40,7 @@ def test_phase_study_writes_expected_artifacts(tmp_path: Path) -> None:
     metrics_csv = run_dir / "metrics.csv"
     metrics_jsonl = run_dir / "metrics.jsonl"
     kernel_phase_csv = run_dir / "kernel_phase_metrics.csv"
+    collectives_json = run_dir / "collectives_summary.json"
     manifest_json = run_dir / "run_manifest.json"
     decode_slo_csv = run_dir / "decode_slo_summary.csv"
     break_even_csv = run_dir / "break_even_summary.csv"
@@ -47,6 +48,7 @@ def test_phase_study_writes_expected_artifacts(tmp_path: Path) -> None:
     assert metrics_csv.exists()
     assert metrics_jsonl.exists()
     assert kernel_phase_csv.exists()
+    assert collectives_json.exists()
     assert manifest_json.exists()
     assert decode_slo_csv.exists()
     assert break_even_csv.exists()

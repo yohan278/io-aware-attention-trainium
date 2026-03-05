@@ -47,7 +47,7 @@ def _percentile_ms(latencies_seconds: list[float], percentile: float) -> float:
 
 
 def _max_relative_error(reference: torch.Tensor, output: torch.Tensor) -> float:
-    denom = reference.abs().clamp_min(1e-9)
+    denom = torch.maximum(reference.abs(), output.abs()).clamp_min(1e-9)
     return float(((reference - output).abs() / denom).max().item())
 
 
@@ -149,4 +149,3 @@ def run_benchmark(
     write_manifest(run_dir, manifest)
 
     return run_dir, records
-

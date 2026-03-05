@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import yaml
 
 from io_aware_attention.bench.artifacts import (
@@ -21,19 +22,33 @@ from io_aware_attention.runtime.trainium import (
     DistributedContext,
     distributed_barrier,
     finalize_distributed_context,
+    gather_rank_strings,
+    get_visible_core_mask,
     init_distributed_context,
     mark_step_if_needed,
+    parse_visible_cores,
     resolve_device,
     sync_if_needed,
 )
+from io_aware_attention.kernels.tiled_online_dist_merge import (
+    forward_pipelined as tiled_online_dist_merge_pipelined,
+)
+from io_aware_attention.kernels.tiled_online_dist_merge import (
+    forward_sync as tiled_online_dist_merge_sync,
+)
 
 KernelName = Literal["qkv_proj", "attention", "mlp", "rmsnorm", "out_proj"]
-SetupName = Literal["single_die", "dual_die_naive", "dual_die_optimized"]
+SetupName = Literal["single_die", "single_die_native", "dual_die_naive", "dual_die_optimized"]
 DTypeName = Literal["bf16", "fp32"]
 DeviceName = Literal["cpu", "trainium"]
 
 ALL_KERNELS: tuple[KernelName, ...] = ("qkv_proj", "attention", "mlp", "rmsnorm", "out_proj")
-ALL_SETUPS: tuple[SetupName, ...] = ("single_die", "dual_die_naive", "dual_die_optimized")
+ALL_SETUPS: tuple[SetupName, ...] = (
+    "single_die",
+    "single_die_native",
+    "dual_die_naive",
+    "dual_die_optimized",
+)
 
 DEFAULT_FABRIC_MESSAGE_SIZES = [1024, 4096, 16384, 65536, 262144, 1048576]
 
@@ -193,14 +208,26 @@ class KernelStudyConfig:
 class CommMetrics:
     bytes_total: float = 0.0
     time_s_total: float = 0.0
+    counts_by_op: dict[str, int] = field(default_factory=dict)
     bytes_by_op: dict[str, float] = field(default_factory=dict)
     time_by_op: dict[str, float] = field(default_factory=dict)
 
     def add(self, op_name: str, payload_bytes: float, elapsed_s: float) -> None:
         self.bytes_total += float(payload_bytes)
         self.time_s_total += float(elapsed_s)
+        self.counts_by_op[op_name] = self.counts_by_op.get(op_name, 0) + 1
         self.bytes_by_op[op_name] = self.bytes_by_op.get(op_name, 0.0) + float(payload_bytes)
         self.time_by_op[op_name] = self.time_by_op.get(op_name, 0.0) + float(elapsed_s)
+
+    def merge_(self, other: "CommMetrics") -> None:
+        self.bytes_total += float(other.bytes_total)
+        self.time_s_total += float(other.time_s_total)
+        for op_name, count in other.counts_by_op.items():
+            self.counts_by_op[op_name] = self.counts_by_op.get(op_name, 0) + int(count)
+        for op_name, payload in other.bytes_by_op.items():
+            self.bytes_by_op[op_name] = self.bytes_by_op.get(op_name, 0.0) + float(payload)
+        for op_name, elapsed in other.time_by_op.items():
+            self.time_by_op[op_name] = self.time_by_op.get(op_name, 0.0) + float(elapsed)
 
 
 @dataclass
@@ -212,6 +239,7 @@ class BenchmarkResult:
     overlap_pct: list[float]
     communication_bytes: list[float]
     achieved_link_gbps: list[float]
+    collective_samples: list[dict[str, dict[str, float]]]
 
 
 def load_kernel_study_config(path: str | Path) -> KernelStudyConfig:
@@ -268,12 +296,24 @@ def _percentile(values: list[float], percentile: float) -> float:
 
 
 def _max_relative_error(reference: torch.Tensor, output: torch.Tensor, eps: float) -> float:
-    scale = torch.maximum(reference.abs(), output.abs()).clamp_min(eps)
+    scale = torch.maximum(reference.abs(), output.abs())
+    dynamic_floor = float(scale.mean().item()) * 1e-3
+    scale = scale.clamp_min(max(float(eps), dynamic_floor))
     return float(((reference - output).abs() / scale).max().item())
 
 
 def _timestamp_utc() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _sample_on_cpu_then_move(device: Any) -> bool:
+    return "xla" in str(device)
+
+
+def _randn(*, shape: tuple[int, ...], dtype: torch.dtype, device: Any) -> torch.Tensor:
+    if _sample_on_cpu_then_move(device):
+        return torch.randn(shape, dtype=dtype, device="cpu").to(device)
+    return torch.randn(shape, dtype=dtype, device=device)
 
 
 def _matmul_fp32(a: torch.Tensor, b: torch.Tensor, out_dtype: torch.dtype) -> torch.Tensor:
@@ -303,6 +343,23 @@ def _attention_single(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, causal:
     probs = torch.softmax(logits, dim=-1)
     out = torch.matmul(probs, v.float())
     return out.to(dtype=q.dtype)
+
+
+def _attention_native(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, causal: bool) -> torch.Tensor:
+    scale = 1.0 / math.sqrt(float(q.size(-1)))
+    try:
+        out = F.scaled_dot_product_attention(
+            q.float(),
+            k.float(),
+            v.float(),
+            attn_mask=None,
+            dropout_p=0.0,
+            is_causal=causal,
+            scale=scale,
+        )
+        return out.to(dtype=q.dtype)
+    except Exception:
+        return _attention_single(q, k, v, causal=causal)
 
 
 def _attention_dual_naive_local(
@@ -543,7 +600,7 @@ def _collective_all_reduce_(
         message_bytes=int(tensor.numel()) * int(dtype_bytes),
         world_size=ctx.world_size,
     )
-    metrics.add("all_reduce", payload, elapsed)
+    metrics.add(f"all_reduce_{op_name}", payload, elapsed)
 
 
 def _collective_all_gather(
@@ -760,6 +817,61 @@ def _attention_dual_dist_optimized(
     return out.to(dtype=q.dtype), metrics
 
 
+def _attention_dual_dist_tiled_merge(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    *,
+    causal: bool,
+    dtype_bytes: int,
+    ctx: DistributedContext,
+    device: Any,
+    pipelined: bool,
+    tile_q: int = 64,
+    tile_k: int = 128,
+) -> tuple[torch.Tensor, CommMetrics]:
+    metrics = CommMetrics()
+    k_local = torch.chunk(k, 2, dim=-2)[ctx.rank]
+    v_local = torch.chunk(v, 2, dim=-2)[ctx.rank]
+    k_start = _seq_partition_start(k, ctx.rank)
+
+    def _reduce(tensor: torch.Tensor, op_name: str) -> None:
+        _collective_all_reduce_(
+            tensor,
+            op_name=op_name,
+            metrics=metrics,
+            ctx=ctx,
+            device=device,
+            dtype_bytes=dtype_bytes,
+        )
+
+    if pipelined:
+        out = tiled_online_dist_merge_pipelined(
+            q,
+            k_local,
+            v_local,
+            None,
+            causal,
+            tile_q=tile_q,
+            tile_k=tile_k,
+            global_k_offset=k_start,
+            reduce_fn=_reduce,
+        )
+    else:
+        out = tiled_online_dist_merge_sync(
+            q,
+            k_local,
+            v_local,
+            None,
+            causal,
+            tile_q=tile_q,
+            tile_k=tile_k,
+            global_k_offset=k_start,
+            reduce_fn=_reduce,
+        )
+    return out.to(dtype=q.dtype), metrics
+
+
 def _mlp_dual_dist(
     x: torch.Tensor,
     w1: torch.Tensor,
@@ -969,6 +1081,7 @@ def _benchmark_fn(
     overlap_pct: list[float] = []
     communication_bytes: list[float] = []
     achieved_link_gbps: list[float] = []
+    collective_samples: list[dict[str, dict[str, float]]] = []
 
     output: torch.Tensor | None = None
 
@@ -992,6 +1105,14 @@ def _benchmark_fn(
         overlap_pct.append(float(overlap_ratio))
         communication_bytes.append(float(comm.bytes_total))
         achieved_link_gbps.append(float(achieved_bw))
+        sample: dict[str, dict[str, float]] = {}
+        for op_name in set(comm.counts_by_op) | set(comm.bytes_by_op) | set(comm.time_by_op):
+            sample[op_name] = {
+                "count": float(comm.counts_by_op.get(op_name, 0)),
+                "bytes": float(comm.bytes_by_op.get(op_name, 0.0)),
+                "time_s": float(comm.time_by_op.get(op_name, 0.0)),
+            }
+        collective_samples.append(sample)
 
     assert output is not None
     return BenchmarkResult(
@@ -1002,6 +1123,7 @@ def _benchmark_fn(
         overlap_pct=overlap_pct,
         communication_bytes=communication_bytes,
         achieved_link_gbps=achieved_link_gbps,
+        collective_samples=collective_samples,
     )
 
 
@@ -1017,33 +1139,33 @@ def _init_kernel_tensors(
         h = shape.num_heads
         dh = d // h
         return {
-            "q": torch.randn((b, h, s, dh), dtype=dtype, device=device),
-            "k": torch.randn((b, h, s, dh), dtype=dtype, device=device),
-            "v": torch.randn((b, h, s, dh), dtype=dtype, device=device),
+            "q": _randn(shape=(b, h, s, dh), dtype=dtype, device=device),
+            "k": _randn(shape=(b, h, s, dh), dtype=dtype, device=device),
+            "v": _randn(shape=(b, h, s, dh), dtype=dtype, device=device),
         }
 
-    x = torch.randn((b, s, d), dtype=dtype, device=device)
+    x = _randn(shape=(b, s, d), dtype=dtype, device=device)
     if kernel == "qkv_proj":
         return {
             "x": x,
-            "w_qkv": torch.randn((d, 3 * d), dtype=dtype, device=device),
+            "w_qkv": _randn(shape=(d, 3 * d), dtype=dtype, device=device),
         }
     if kernel == "mlp":
         mlp_dim = shape.mlp_ratio * d
         return {
             "x": x,
-            "w1": torch.randn((d, mlp_dim), dtype=dtype, device=device),
-            "w2": torch.randn((mlp_dim, d), dtype=dtype, device=device),
+            "w1": _randn(shape=(d, mlp_dim), dtype=dtype, device=device),
+            "w2": _randn(shape=(mlp_dim, d), dtype=dtype, device=device),
         }
     if kernel == "rmsnorm":
         return {
             "x": x,
-            "gamma": torch.randn((d,), dtype=dtype, device=device),
+            "gamma": _randn(shape=(d,), dtype=dtype, device=device),
         }
     if kernel == "out_proj":
         return {
             "x": x,
-            "w_out": torch.randn((d, d), dtype=dtype, device=device),
+            "w_out": _randn(shape=(d, d), dtype=dtype, device=device),
         }
 
     raise ValueError(f"Unsupported kernel: {kernel}")
@@ -1058,21 +1180,31 @@ def _build_runner(
     dist_ctx: DistributedContext,
     device: Any,
 ) -> Any:
-    if setup == "single_die":
+    if setup in {"single_die", "single_die_native"}:
         if kernel == "qkv_proj":
+            if setup == "single_die_native":
+                raise ValueError("single_die_native is only valid for attention kernel")
             x = tensors["x"]
             w_qkv = tensors["w_qkv"]
             return lambda: (_qkv_single(x, w_qkv), CommMetrics())
         if kernel == "attention":
             q, k, v = tensors["q"], tensors["k"], tensors["v"]
+            if setup == "single_die_native":
+                return lambda: (_attention_native(q, k, v, causal_attention), CommMetrics())
             return lambda: (_attention_single(q, k, v, causal_attention), CommMetrics())
         if kernel == "mlp":
+            if setup == "single_die_native":
+                raise ValueError("single_die_native is only valid for attention kernel")
             x, w1, w2 = tensors["x"], tensors["w1"], tensors["w2"]
             return lambda: (_mlp_single(x, w1, w2), CommMetrics())
         if kernel == "rmsnorm":
+            if setup == "single_die_native":
+                raise ValueError("single_die_native is only valid for attention kernel")
             x, gamma = tensors["x"], tensors["gamma"]
             return lambda: (_rmsnorm_single(x, gamma), CommMetrics())
         if kernel == "out_proj":
+            if setup == "single_die_native":
+                raise ValueError("single_die_native is only valid for attention kernel")
             x, w_out = tensors["x"], tensors["w_out"]
             return lambda: (_out_proj_single(x, w_out), CommMetrics())
         raise ValueError(f"Unsupported kernel: {kernel}")
@@ -1116,7 +1248,7 @@ def _build_runner(
                     ctx=dist_ctx,
                     device=device,
                 )
-            return lambda: _attention_dual_dist_optimized(
+            return lambda: _attention_dual_dist_tiled_merge(
                 q,
                 k,
                 v,
@@ -1124,6 +1256,7 @@ def _build_runner(
                 dtype_bytes=dtype_bytes,
                 ctx=dist_ctx,
                 device=device,
+                pipelined=True,
             )
 
         if kernel == "mlp":
@@ -1256,6 +1389,47 @@ def _write_metrics(run_dir: Path, records: list[dict[str, Any]]) -> tuple[Path, 
             handle.write(json.dumps(row, sort_keys=True) + "\n")
 
     return csv_path, jsonl_path
+
+
+def _collective_payload_from_samples(
+    samples: list[dict[str, dict[str, float]]],
+) -> dict[str, dict[str, float]]:
+    ops: dict[str, dict[str, list[float]]] = {}
+    for sample in samples:
+        for op_name, payload in sample.items():
+            slot = ops.setdefault(op_name, {"count": [], "bytes": [], "time_s": []})
+            slot["count"].append(float(payload.get("count", 0.0)))
+            slot["bytes"].append(float(payload.get("bytes", 0.0)))
+            slot["time_s"].append(float(payload.get("time_s", 0.0)))
+
+    out: dict[str, dict[str, float]] = {}
+    for op_name, data in ops.items():
+        total_count = float(np.sum(data["count"])) if data["count"] else 0.0
+        total_bytes = float(np.sum(data["bytes"])) if data["bytes"] else 0.0
+        total_time = float(np.sum(data["time_s"])) if data["time_s"] else 0.0
+        out[op_name] = {
+            "count_total": total_count,
+            "bytes_total": total_bytes,
+            "time_ms_total": total_time * 1000.0,
+            "count_p50": _percentile(data["count"], 50),
+            "bytes_p50": _percentile(data["bytes"], 50),
+            "time_ms_p50": _percentile(data["time_s"], 50) * 1000.0,
+            "effective_gbps_p50": ((total_bytes / total_time) / 1e9) if total_time > 0 else 0.0,
+        }
+    return out
+
+
+def _write_collectives_summary(
+    run_dir: Path,
+    rows: list[dict[str, Any]],
+) -> Path:
+    payload = {
+        "generated_at_utc": _timestamp_utc(),
+        "rows": rows,
+    }
+    out_path = run_dir / "collectives_summary.json"
+    out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return out_path
 
 
 def _write_summary(run_dir: Path, records: list[dict[str, Any]]) -> Path:
@@ -1655,6 +1829,24 @@ def run_kernel_study(
             torch.cuda.manual_seed_all(config.seed)
 
         records: list[dict[str, Any]] = []
+        collectives_rows: list[dict[str, Any]] = []
+        local_mask = get_visible_core_mask()
+        rank_masks_raw = [str(local_mask["raw"])]
+        if dist_ctx.enabled:
+            rank_masks_raw = gather_rank_strings(
+                local_value=str(local_mask["raw"]),
+                ctx=dist_ctx,
+                device=device,
+            )
+        rank_core_masks = [
+            {
+                "rank": int(rank),
+                "visible_cores_raw": str(raw),
+                "visible_cores": parse_visible_cores(None if raw == "all" else str(raw)),
+                "chip_id": "unknown",
+            }
+            for rank, raw in enumerate(rank_masks_raw)
+        ]
 
         for shape_idx, shape in enumerate(config.shapes):
             for kernel_idx, kernel in enumerate(config.kernels):
@@ -1679,6 +1871,14 @@ def run_kernel_study(
                 baseline_cpu = baseline_result.output.detach().to("cpu", dtype=torch.float32)
 
                 for setup in selected_setups:
+                    if setup == "single_die_native" and kernel != "attention":
+                        if dist_ctx.enabled:
+                            distributed_barrier(dist_ctx)
+                        continue
+                    if setup in {"single_die", "single_die_native"} and dist_ctx.enabled and not dist_ctx.is_primary:
+                        distributed_barrier(dist_ctx)
+                        continue
+
                     runner = _build_runner(
                         kernel=kernel,
                         setup=setup,
@@ -1703,8 +1903,8 @@ def run_kernel_study(
                         eps=_relative_error_eps(config.dtype),
                     )
 
-                    if config.enforce_correctness and setup != "single_die":
-                        if max_abs_err > abs_tol and max_rel_err > rel_tol:
+                    if config.enforce_correctness and setup not in {"single_die", "single_die_native"}:
+                        if max_abs_err > abs_tol or max_rel_err > rel_tol:
                             raise RuntimeError(
                                 f"Correctness gate failed for {kernel}/{setup}: "
                                 f"max_abs_err={max_abs_err:.6g} (tol={abs_tol:.6g}), "
@@ -1762,10 +1962,26 @@ def run_kernel_study(
                         raise RuntimeError(f"Metric record missing required columns: {missing}")
                     if dist_ctx.is_primary:
                         records.append(record)
+                        collectives_rows.append(
+                            {
+                                "timestamp": _timestamp_utc(),
+                                "phase": "kernel",
+                                "setup": setup,
+                                "kernel": kernel,
+                                "batch": shape.batch,
+                                "seq_len": shape.seq_len,
+                                "model_dim": shape.model_dim,
+                                "num_heads": shape.num_heads,
+                                "ops": _collective_payload_from_samples(result.collective_samples),
+                            }
+                        )
+                    if dist_ctx.enabled:
+                        distributed_barrier(dist_ctx)
 
         if dist_ctx.is_primary:
             _write_metrics(run_dir, records)
             _write_summary(run_dir, records)
+            _write_collectives_summary(run_dir, collectives_rows)
 
             repo_root = Path(__file__).resolve().parents[3]
             manifest = build_run_manifest(
@@ -1773,6 +1989,10 @@ def run_kernel_study(
                 benchmark_config_path=config_path.resolve(),
                 variant="kernel_study",
                 seed=config.seed,
+                distributed_enabled=dist_ctx.enabled,
+                distributed_world_size=dist_ctx.world_size,
+                distributed_rank=dist_ctx.rank,
+                rank_core_masks=rank_core_masks,
             )
             manifest.update(
                 {

@@ -11,6 +11,13 @@ import torch
 
 
 def _load_xla_model():
+    # Workaround for some Neuron runtime builds where importing torch_xla first
+    # can fail with `KeyError: 'neuronxcc.nki.compiler'` unless the submodule is
+    # materialized in sys.modules first.
+    try:
+        import neuronxcc.nki.compiler  # type: ignore # noqa: F401
+    except Exception:
+        pass
     try:
         import torch_xla.core.xla_model as xm  # type: ignore
     except Exception as exc:  # pragma: no cover - exercised on Trainium host
@@ -78,6 +85,72 @@ def get_torch_neuronx_version() -> str:
         return importlib.metadata.version("torch-neuronx")
     except importlib.metadata.PackageNotFoundError:
         return "not-installed"
+
+
+def parse_visible_cores(raw: str | None) -> list[int]:
+    """Parse NEURON_RT_VISIBLE_CORES syntax like '0-3,8,10-11'."""
+    if raw is None:
+        return []
+    cores: list[int] = []
+    for part in raw.split(","):
+        token = part.strip()
+        if not token:
+            continue
+        if "-" in token:
+            start_raw, end_raw = token.split("-", maxsplit=1)
+            start = int(start_raw.strip())
+            end = int(end_raw.strip())
+            if end < start:
+                start, end = end, start
+            cores.extend(range(start, end + 1))
+        else:
+            cores.append(int(token))
+    return sorted(set(cores))
+
+
+def get_visible_core_mask() -> dict[str, Any]:
+    raw = os.getenv("NEURON_RT_VISIBLE_CORES")
+    return {
+        "raw": raw or "all",
+        "parsed": parse_visible_cores(raw),
+    }
+
+
+def _encode_string_tensor(value: str, *, max_len: int, device: Any) -> tuple[torch.Tensor, torch.Tensor]:
+    encoded = value.encode("utf-8", errors="ignore")[:max_len]
+    length = torch.tensor([len(encoded)], dtype=torch.int32, device=device)
+    payload = torch.zeros((max_len,), dtype=torch.int32, device=device)
+    if encoded:
+        payload[: len(encoded)] = torch.tensor(list(encoded), dtype=torch.int32, device=device)
+    return length, payload
+
+
+def _decode_string_tensor(length: torch.Tensor, payload: torch.Tensor) -> str:
+    size = int(max(0, length.item()))
+    values = payload[:size].detach().to("cpu", dtype=torch.int32).tolist()
+    return bytes(int(x) for x in values).decode("utf-8", errors="ignore")
+
+
+def gather_rank_strings(
+    *,
+    local_value: str,
+    ctx: "DistributedContext",
+    device: Any,
+    max_len: int = 256,
+) -> list[str]:
+    """Gather short strings across ranks without using all_gather_object."""
+    if not ctx.enabled:
+        return [local_value]
+    import torch.distributed as dist
+
+    length, payload = _encode_string_tensor(local_value, max_len=max_len, device=device)
+    lengths = [torch.zeros_like(length) for _ in range(ctx.world_size)]
+    payloads = [torch.zeros_like(payload) for _ in range(ctx.world_size)]
+    dist.all_gather(lengths, length)
+    dist.all_gather(payloads, payload)
+    mark_step_if_needed(device)
+    sync_if_needed(device)
+    return [_decode_string_tensor(l, p) for l, p in zip(lengths, payloads)]
 
 
 @dataclass(frozen=True)

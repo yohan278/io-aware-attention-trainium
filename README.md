@@ -6,7 +6,7 @@ This repository is compatible with the CS149-style AWS setup (`ap-southeast-4`, 
 
 ## What this repository provides
 
-- Forward-only SDPA benchmark harness (`naive`, `tiled_online`, and a placeholder `tiled_online_dbuffer` variant).
+- Forward-only SDPA benchmark harness (`naive`, `tiled_online`, `tiled_online_dbuffer`, plus distributed-merge variants).
 - Reproducible run artifacts (`metrics.csv`, `metrics.jsonl`, `run_manifest.json`).
 - Trainium host bootstrap and environment validation scripts.
 - Optional result upload to S3.
@@ -73,6 +73,8 @@ CONDA_ENV_NAME=fa-trn2 bash scripts/bootstrap_trainium_host.sh
   - `torchrun --nproc_per_node=2 scripts/run_kernel_study.py --config configs/experiments/trn2_kernel_study.yaml --device trainium --distributed`
 - Plot kernel-study outputs:
   - `python scripts/plot_kernel_study.py --metrics-csv <run_dir>/metrics.csv --out-dir results/plots --prefix <name>`
+- Dual-die what-if model (alpha/beta/overlap break-even sweep):
+  - `python scripts/what_if_dual_die.py --metrics-csv <run_dir>/metrics.csv --collectives-json <run_dir>/collectives_summary.json --fabric-json <run_dir>/fabric_calibration.json --out-dir results/plots --prefix <name>`
 - Phase-aware prefill/decode study:
   - `torchrun --nproc_per_node=2 scripts/run_phase_study.py --config configs/experiments/trn2_phase_study.yaml --device trainium --distributed`
 - Plot phase-study outputs:
@@ -111,6 +113,8 @@ Evaluate five common transformer kernels on AWS Trainium2 and compare:
 - Dual setup names:
   - `dual_die_naive`: straightforward partition + heavier collective traffic.
   - `dual_die_optimized`: reduced communication volume via kernel-specific partition/reduction strategy.
+- Single-die native attention baseline:
+  - `single_die_native` (attention-only): uses `torch.nn.functional.scaled_dot_product_attention` when available.
 
 ### Fabric calibration
 
@@ -131,7 +135,7 @@ The run on **March 3, 2026** measured a peak calibrated fabric throughput of app
 
 - Correctness is checked against single-die output per kernel/shape.
 - Recorded metrics: `max_abs_err`, robust `max_rel_err` (numerically stable denominator).
-- Gate fails only when both thresholds are exceeded:
+- Gate fails when either threshold is exceeded:
   - `correctness_abs_tol: 0.05`
   - `correctness_rel_tol: 0.1`
 
@@ -160,13 +164,13 @@ python scripts/plot_kernel_study.py \
   --prefix trn2_dual_real_final
 ```
 
-### Latest full run summary
+### Latest strict quick run summary
 
-Full run id: `run_20260303T221727Z` (executed March 3, 2026).
+Strict quick run id: `run_20260305T032452Z` (executed March 5, 2026, config: `configs/experiments/trn2_kernel_quick_fp32_strict.yaml`).
 
-- `dual_die_naive` median slowdown vs single-die across all kernel/shape points: ~`6.27x`
-- `dual_die_optimized` median slowdown vs single-die: ~`5.42x`
-- Optimized mode substantially reduced communication bytes for `attention`, `qkv_proj`, and `mlp`, but did not beat single-die latency in this setup.
+- `dual_die_naive` median slowdown vs single-die across all kernel/shape points: ~`5.74x`
+- `dual_die_optimized` median slowdown vs single-die: ~`3.89x`
+- `dual_die_optimized` reduces communication for linear kernels (`qkv_proj/mlp/out_proj`) but attention is still communication-dominated in this emulation level.
 
 Interpretation note:
 
@@ -177,6 +181,9 @@ Interpretation note:
 ![Trn2 dual-real latency](results/plots/trn2_dual_real_final_latency.png)
 ![Trn2 dual-real throughput](results/plots/trn2_dual_real_final_throughput.png)
 ![Trn2 dual-real speedup](results/plots/trn2_dual_real_final_speedup.png)
+![Trn2 dual quick strict latency](results/plots/trn2_dual_real_final_quick_fp32_strict3_latency.png)
+![Trn2 dual quick strict throughput](results/plots/trn2_dual_real_final_quick_fp32_strict3_throughput.png)
+![Trn2 dual quick strict speedup](results/plots/trn2_dual_real_final_quick_fp32_strict3_speedup.png)
 
 ## Phase-aware experiment: where dual-die helps
 
@@ -213,6 +220,18 @@ Measure end-to-end prefill and decode behavior to answer:
 
 ### Reproduce phase run
 
+Quick strict (recommended on `trn2.3xlarge`):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_phase_ultra_strict.yaml \
+  --device trainium \
+  --distributed \
+  --output-dir results/trn2-phase-ultra-strict
+```
+
+Full sweep (recommended on larger Trn2 capacity):
+
 ```bash
 torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --config configs/experiments/trn2_phase_study.yaml \
@@ -229,39 +248,33 @@ python scripts/plot_phase_study.py \
   --prefix trn2_phase_real_final
 ```
 
-### Latest phase run summary
+### Latest phase run summary (ultra strict)
 
-Full run id: `run_20260303T234000Z` (executed March 3, 2026 on Trn2).
+Run id: `run_20260305T052604Z` (executed March 5, 2026, config: `configs/experiments/trn2_phase_ultra_strict.yaml`).
 
-- Prefill (`batch=2`, long context):
-  - `dual_die_request_sharded` improved p50 latency vs single by:
-    - `1.61x` at `seq_len=2048`
-    - `1.56x` at `seq_len=4096`
-    - `1.58x` at `seq_len=8192`
-  - `dual_die_tensor_optimized` remained slower than single (`0.40x` to `0.55x` relative speedup) due communication.
-- Decode throughput (tokens/s):
-  - `dual_die_request_sharded` vs single:
-    - `+4.2%` to `+66.5%` at `context_len=2048`
-    - `+2.0%` to `+71.4%` at `context_len=4096`
-  - `dual_die_tensor_optimized` is communication-bound (`~5%` to `11%` of single throughput).
-- Throughput-at-SLO (`1000 ms` p90 budget on this decode-step workload):
-  - `context_len=2048`: request-sharded `13,578` vs single `13,031` tokens/s
-  - `context_len=4096`: request-sharded `7,873` vs single `7,715` tokens/s
-- Break-even (`compute + comm - overlap <= single latency`):
-  - Tensor-parallel rows need large additional overlap to tie single (see `break_even_summary.csv`).
-  - Request-sharded rows consistently satisfy break-even with `communication_ms_p50 ~= 0`.
+- Prefill (`batch=2`):
+  - `seq_len=2048`: request-sharded is `0.66x` of single-die speed; tensor-optimized is `0.018x`.
+  - `seq_len=4096`: request-sharded is `0.93x` of single-die speed; tensor-optimized is `0.009x`.
+- Decode (`context_len=2048`, `decode_steps=1`) is highly sensitive in this small config:
+  - Tensor-optimized remains slower than single due communication.
+  - Request-sharded includes one strong-concurrency outlier and should be revalidated with `decode_steps>=4` on larger Trn2 capacity.
+
+Practical note:
+
+- Full long-context + multi-step decode sweeps are compile-heavy on `trn2.3xlarge` with dynamic cache growth. Use this ultra config for quick iteration, and run the full `trn2_phase_study.yaml` on larger Trn2 capacity for final report numbers.
 
 Interpretation:
 
-- Dual-die benefit shows up primarily in decode service throughput when KV cache and requests are sharded across dies.
-- Tensor-parallel decode remains limited by collective communication in this setup.
+- In this ultra quick run, tensor-parallel decode/prefill remains communication-bound.
+- Request-sharded behavior is workload-sensitive and needs multi-step decode reruns on larger Trn2 capacity for stable service-throughput claims.
 
 ### Committed phase-study plots
 
-![Trn2 phase prefill latency](results/plots/trn2_phase_real_final_prefill_latency.png)
-![Trn2 phase decode throughput](results/plots/trn2_phase_real_final_decode_throughput.png)
-![Trn2 phase decode SLO](results/plots/trn2_phase_real_final_decode_slo.png)
-![Trn2 phase break-even](results/plots/trn2_phase_real_final_break_even.png)
+![Trn2 phase ultra strict prefill latency](results/plots/trn2_phase_real_final_ultra_strict_prefill_latency.png)
+![Trn2 phase ultra strict decode throughput](results/plots/trn2_phase_real_final_ultra_strict_decode_throughput.png)
+![Trn2 phase ultra strict decode SLO](results/plots/trn2_phase_real_final_ultra_strict_decode_slo.png)
+![Trn2 phase ultra strict kernel speedup](results/plots/trn2_phase_real_final_ultra_strict_kernel_phase_speedup.png)
+![Trn2 phase ultra strict break-even](results/plots/trn2_phase_real_final_ultra_strict_break_even.png)
 
 ## Artifact schema
 
@@ -270,6 +283,7 @@ Each run directory under `results/` contains:
 - `metrics.csv`
 - `metrics.jsonl`
 - `fabric_calibration.csv` and `fabric_calibration.json` (when distributed calibration is enabled)
+- `collectives_summary.json` (per-op `{count, bytes, time}` grouped by setup/kernel/shape/phase)
 - `decode_slo_summary.csv` and `decode_slo_summary.md` (phase study)
 - `break_even_summary.csv` and `break_even_summary.md` (phase study)
 - `kernel_phase_metrics.csv` and `kernel_phase_metrics.jsonl` (phase study)
@@ -278,6 +292,8 @@ Each run directory under `results/` contains:
   - `timestamp_utc`
   - `instance_type`
   - `device_target`
+  - `emulation_level` (`L0`/`L1`/`L2`)
+  - `rank_core_masks` (per-rank visible core mask + parsed cores + chip id placeholder)
   - `torch_version`
   - `torch_neuronx_version`
   - `python_version`

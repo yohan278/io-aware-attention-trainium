@@ -25,7 +25,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--variant",
-        choices=["naive", "tiled_online", "tiled_online_dbuffer"],
+        choices=[
+            "naive",
+            "tiled_online",
+            "tiled_online_dbuffer",
+            "tiled_online_dist_merge_sync",
+            "tiled_online_dist_merge_pipelined",
+        ],
         default=None,
         help="Override kernel variant.",
     )
