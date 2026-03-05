@@ -143,6 +143,7 @@ pytest -q
 
 - Contribution guide: `CONTRIBUTING.md`
 - Experiment guide: `docs/EXPERIMENT_GUIDE.md`
+- Experiment validation flow: `docs/EXPERIMENT_VALIDATION_DIAGRAM.md`
 - Trn2 executed commands: `docs/TRN2_EXECUTED_COMMANDS.md`
 - Dual-die architecture diagrams: `docs/DUAL_DIE_COMPUTE_DIAGRAMS.md`
 - Trainium runbook: `docs/TRAINIUM_SELF_HOSTED.md`
