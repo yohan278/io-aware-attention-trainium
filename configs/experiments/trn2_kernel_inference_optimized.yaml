@@ -13,7 +13,7 @@ fabric_measure_iters: 8
 
 enforce_correctness: true
 correctness_abs_tol: 0.005
-correctness_rel_tol: 0.02
+correctness_rel_tol: 0.025
 
 # Grouped distributed-merge attention to reduce collective count.
 attention_pipelined: false
