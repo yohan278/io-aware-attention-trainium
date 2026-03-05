@@ -20,6 +20,11 @@ def test_load_phase_study_smoke_config() -> None:
     assert cfg.dual_world_size == 2
     assert cfg.enable_fabric_calibration is False
     assert cfg.tensor_attention_naive_threshold == 0
+    assert cfg.tensor_attention_tile_q == 64
+    assert cfg.tensor_attention_tile_k == 128
+    assert cfg.tensor_attention_reduce_group_k == 1
+    assert cfg.tensor_attention_pipelined_prefill is True
+    assert cfg.tensor_attention_pipelined_decode is False
     assert len(cfg.prefill_shapes) == 1
     assert len(cfg.decode_shapes) == 1
 

@@ -2,13 +2,14 @@ device: trainium
 dtype: fp32
 seed: 123
 warmup_iters: 1
-measure_iters: 3
+measure_iters: 5
 distributed: true
 dual_world_size: 2
 setups:
   - single_die
   - dual_die_tensor_optimized
   - dual_die_request_sharded
+
 enable_fabric_calibration: true
 fabric_message_sizes:
   - 1024
@@ -19,42 +20,37 @@ fabric_message_sizes:
   - 1048576
 fabric_warmup_iters: 2
 fabric_measure_iters: 8
+
 enforce_correctness: true
-correctness_abs_tol: 0.05
-correctness_rel_tol: 0.1
+correctness_abs_tol: 0.005
+correctness_rel_tol: 0.02
+
+# Dual-die-aware attention knobs:
+# - reduce_group_k lowers collective count by merging multiple K tiles locally.
 tensor_attention_tile_q: 64
 tensor_attention_tile_k: 128
-tensor_attention_reduce_group_k: 1
+tensor_attention_reduce_group_k: 8
 tensor_attention_pipelined_prefill: true
-tensor_attention_pipelined_decode: false
+tensor_attention_pipelined_decode: true
+tensor_attention_naive_threshold: 0
 
-# Prefill surrogate: long-context sequence sweep (2k/4k/8k/16k).
 prefill:
-  - batch: 2
+  - batch: 4
     seq_len: 2048
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
-  - batch: 2
+  - batch: 4
     seq_len: 4096
     model_dim: 1024
     num_heads: 16
     mlp_ratio: 4
-  - batch: 2
+  - batch: 4
     seq_len: 8192
     model_dim: 1024
-    num_heads: 8
+    num_heads: 16
     mlp_ratio: 4
-  - batch: 2
-    seq_len: 16384
-    model_dim: 512
-    num_heads: 1
-    mlp_ratio: 4
-    setups:
-      - single_die
-      - dual_die_request_sharded
 
-# Decode steady-state with continuous batching + KV-cache sharding proxy.
 decode:
   - concurrency: 8
     context_len: 2048
@@ -99,12 +95,6 @@ decode:
     num_heads: 16
     mlp_ratio: 4
   - concurrency: 16
-    context_len: 8192
-    decode_steps: 16
-    model_dim: 1024
-    num_heads: 16
-    mlp_ratio: 4
-  - concurrency: 32
     context_len: 8192
     decode_steps: 16
     model_dim: 1024

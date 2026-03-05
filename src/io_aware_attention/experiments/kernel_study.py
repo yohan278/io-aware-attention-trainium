@@ -137,6 +137,9 @@ class KernelStudyConfig:
     fabric_message_sizes: list[int]
     fabric_warmup_iters: int
     fabric_measure_iters: int
+    attention_tile_q: int
+    attention_tile_k: int
+    attention_reduce_group_k: int
     enforce_correctness: bool
     correctness_abs_tol: float | None
     correctness_rel_tol: float | None
@@ -165,6 +168,9 @@ class KernelStudyConfig:
             ],
             fabric_warmup_iters=int(raw.get("fabric_warmup_iters", 2)),
             fabric_measure_iters=int(raw.get("fabric_measure_iters", 8)),
+            attention_tile_q=int(raw.get("attention_tile_q", 64)),
+            attention_tile_k=int(raw.get("attention_tile_k", 128)),
+            attention_reduce_group_k=int(raw.get("attention_reduce_group_k", 1)),
             enforce_correctness=bool(raw.get("enforce_correctness", True)),
             correctness_abs_tol=(
                 None if raw.get("correctness_abs_tol") is None else float(raw["correctness_abs_tol"])
@@ -189,6 +195,8 @@ class KernelStudyConfig:
             raise ValueError(f"This experiment currently supports dual_world_size=2 only, got {self.dual_world_size}")
         if self.fabric_warmup_iters < 0 or self.fabric_measure_iters < 1:
             raise ValueError("fabric calibration warmup/measure iters must be >= 0 / >= 1")
+        if self.attention_tile_q < 1 or self.attention_tile_k < 1 or self.attention_reduce_group_k < 1:
+            raise ValueError("attention_tile_q, attention_tile_k, and attention_reduce_group_k must be >= 1")
         if not self.fabric_message_sizes:
             raise ValueError("fabric_message_sizes must not be empty")
         for size in self.fabric_message_sizes:
@@ -829,6 +837,7 @@ def _attention_dual_dist_tiled_merge(
     pipelined: bool,
     tile_q: int = 64,
     tile_k: int = 128,
+    reduce_group_k: int = 1,
 ) -> tuple[torch.Tensor, CommMetrics]:
     metrics = CommMetrics()
     k_local = torch.chunk(k, 2, dim=-2)[ctx.rank]
@@ -854,6 +863,7 @@ def _attention_dual_dist_tiled_merge(
             causal,
             tile_q=tile_q,
             tile_k=tile_k,
+            reduce_group_k=reduce_group_k,
             global_k_offset=k_start,
             reduce_fn=_reduce,
         )
@@ -866,6 +876,7 @@ def _attention_dual_dist_tiled_merge(
             causal,
             tile_q=tile_q,
             tile_k=tile_k,
+            reduce_group_k=reduce_group_k,
             global_k_offset=k_start,
             reduce_fn=_reduce,
         )
@@ -1179,6 +1190,9 @@ def _build_runner(
     dtype_bytes: int,
     dist_ctx: DistributedContext,
     device: Any,
+    attention_tile_q: int = 64,
+    attention_tile_k: int = 128,
+    attention_reduce_group_k: int = 1,
 ) -> Any:
     if setup in {"single_die", "single_die_native"}:
         if kernel == "qkv_proj":
@@ -1257,6 +1271,9 @@ def _build_runner(
                 ctx=dist_ctx,
                 device=device,
                 pipelined=True,
+                tile_q=attention_tile_q,
+                tile_k=attention_tile_k,
+                reduce_group_k=attention_reduce_group_k,
             )
 
         if kernel == "mlp":
@@ -1861,6 +1878,9 @@ def run_kernel_study(
                     dtype_bytes=dtype_bytes,
                     dist_ctx=dist_ctx,
                     device=device,
+                    attention_tile_q=config.attention_tile_q,
+                    attention_tile_k=config.attention_tile_k,
+                    attention_reduce_group_k=config.attention_reduce_group_k,
                 )
                 baseline_result = _benchmark_fn(
                     baseline_runner,
@@ -1887,6 +1907,9 @@ def run_kernel_study(
                         dtype_bytes=dtype_bytes,
                         dist_ctx=dist_ctx,
                         device=device,
+                        attention_tile_q=config.attention_tile_q,
+                        attention_tile_k=config.attention_tile_k,
+                        attention_reduce_group_k=config.attention_reduce_group_k,
                     )
                     result = _benchmark_fn(
                         runner,
@@ -2006,6 +2029,9 @@ def run_kernel_study(
                     "correctness_abs_tol": abs_tol,
                     "correctness_rel_tol": rel_tol,
                     "fabric_peak_gbps": float(fabric_summary.get("peak_gbps", 0.0)),
+                    "attention_tile_q": config.attention_tile_q,
+                    "attention_tile_k": config.attention_tile_k,
+                    "attention_reduce_group_k": config.attention_reduce_group_k,
                 }
             )
             write_manifest(run_dir, manifest)
@@ -2038,6 +2064,9 @@ def run_kernel_once_for_testing(
         dtype_bytes=dtype_bytes,
         dist_ctx=DistributedContext(enabled=False),
         device=device,
+        attention_tile_q=64,
+        attention_tile_k=128,
+        attention_reduce_group_k=1,
     )
     out, _ = runner()
     return out.detach().to("cpu", dtype=torch.float32)

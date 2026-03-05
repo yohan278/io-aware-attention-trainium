@@ -30,6 +30,15 @@ torchrun --nproc_per_node=2 scripts/run_kernel_study.py \
   --distributed
 ```
 
+Inference-optimized variant (grouped distributed-merge attention):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_kernel_study.py \
+  --config configs/experiments/trn2_kernel_inference_optimized.yaml \
+  --device trainium \
+  --distributed
+```
+
 ## 2) Phase Study (Prefill + Decode)
 
 Run:
@@ -46,6 +55,24 @@ Ultra-strict/quick variant:
 ```bash
 torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --config configs/experiments/trn2_phase_ultra_strict.yaml \
+  --device trainium \
+  --distributed
+```
+
+Inference-focused variant (recommended for chip-advice storyline):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_story.yaml \
+  --device trainium \
+  --distributed
+```
+
+Lower-cost quick inference variant:
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_story_quick.yaml \
   --device trainium \
   --distributed
 ```
@@ -82,7 +109,29 @@ python scripts/what_if_dual_die.py \
   --prefix <name>
 ```
 
-## 5) Output Files
+## 5) Curated Inference Plot Set
+
+Use this to keep only high-signal serving plots:
+
+```bash
+python scripts/plot_inference_track.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --decode-slo-csv <run_dir>/decode_slo_summary.csv \
+  --break-even-csv <run_dir>/break_even_summary.csv \
+  --out-dir results/plots \
+  --prefix inference_story \
+  --purge-stale
+```
+
+The script emits:
+
+- `*_prefill_ratio.png`
+- `*_decode_slo_frontier.png`
+- `*_decode_kv_efficiency.png`
+- `*_comm_breakdown.png`
+- `*_plot_manifest.md` (why each kept plot is useful)
+
+## 6) Output Files
 
 Each run directory (`results/<run_id>/`) may include:
 
@@ -95,7 +144,7 @@ Each run directory (`results/<run_id>/`) may include:
   - `decode_slo_summary.csv`, `decode_slo_summary.md`
   - `kernel_phase_metrics.csv`, `kernel_phase_metrics.jsonl`
 
-## 6) Public Repo Policy
+## 7) Public Repo Policy
 
 - Generated results and plots are not committed.
 - Keep only source code, configs, and documentation in version control.

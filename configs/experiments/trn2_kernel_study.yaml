@@ -10,6 +10,9 @@ enable_fabric_calibration: true
 fabric_message_sizes: [1024, 4096, 16384, 65536, 262144, 1048576]
 fabric_warmup_iters: 2
 fabric_measure_iters: 8
+attention_tile_q: 64
+attention_tile_k: 128
+attention_reduce_group_k: 1
 enforce_correctness: true
 correctness_abs_tol: 0.05
 correctness_rel_tol: 0.1

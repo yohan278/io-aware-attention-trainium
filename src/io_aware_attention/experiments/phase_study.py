@@ -181,6 +181,11 @@ class PhaseStudyConfig:
     correctness_abs_tol: float
     correctness_rel_tol: float
     tensor_attention_naive_threshold: int
+    tensor_attention_tile_q: int
+    tensor_attention_tile_k: int
+    tensor_attention_reduce_group_k: int
+    tensor_attention_pipelined_prefill: bool
+    tensor_attention_pipelined_decode: bool
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "PhaseStudyConfig":
@@ -209,6 +214,11 @@ class PhaseStudyConfig:
             correctness_abs_tol=float(raw.get("correctness_abs_tol", 0.05)),
             correctness_rel_tol=float(raw.get("correctness_rel_tol", 0.1)),
             tensor_attention_naive_threshold=int(raw.get("tensor_attention_naive_threshold", 0)),
+            tensor_attention_tile_q=int(raw.get("tensor_attention_tile_q", 64)),
+            tensor_attention_tile_k=int(raw.get("tensor_attention_tile_k", 128)),
+            tensor_attention_reduce_group_k=int(raw.get("tensor_attention_reduce_group_k", 1)),
+            tensor_attention_pipelined_prefill=bool(raw.get("tensor_attention_pipelined_prefill", True)),
+            tensor_attention_pipelined_decode=bool(raw.get("tensor_attention_pipelined_decode", False)),
         )
         cfg.validate()
         return cfg
@@ -224,6 +234,15 @@ class PhaseStudyConfig:
             raise ValueError("fabric calibration warmup/measure iters must be >= 0 / >= 1")
         if self.tensor_attention_naive_threshold < 0:
             raise ValueError("tensor_attention_naive_threshold must be >= 0")
+        if (
+            self.tensor_attention_tile_q < 1
+            or self.tensor_attention_tile_k < 1
+            or self.tensor_attention_reduce_group_k < 1
+        ):
+            raise ValueError(
+                "tensor_attention_tile_q, tensor_attention_tile_k, and "
+                "tensor_attention_reduce_group_k must be >= 1"
+            )
         if not self.fabric_message_sizes:
             raise ValueError("fabric_message_sizes must not be empty")
         for size in self.fabric_message_sizes:
@@ -504,6 +523,10 @@ def _prefill_step_tensor(
     *,
     num_heads: int,
     attention_optimized: bool,
+    attention_pipelined: bool,
+    attention_tile_q: int,
+    attention_tile_k: int,
+    attention_reduce_group_k: int,
     dtype_bytes: int,
     ctx: DistributedContext,
     device: Any,
@@ -550,7 +573,10 @@ def _prefill_step_tensor(
                 dtype_bytes=dtype_bytes,
                 ctx=ctx,
                 device=device,
-                pipelined=True,
+                pipelined=attention_pipelined,
+                tile_q=attention_tile_q,
+                tile_k=attention_tile_k,
+                reduce_group_k=attention_reduce_group_k,
             )
     else:
         def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
@@ -683,6 +709,10 @@ def _decode_step_tensor(
     *,
     num_heads: int,
     attention_optimized: bool,
+    attention_pipelined: bool,
+    attention_tile_q: int,
+    attention_tile_k: int,
+    attention_reduce_group_k: int,
     dtype_bytes: int,
     ctx: DistributedContext,
     device: Any,
@@ -732,7 +762,10 @@ def _decode_step_tensor(
                 dtype_bytes=dtype_bytes,
                 ctx=ctx,
                 device=device,
-                pipelined=False,
+                pipelined=attention_pipelined,
+                tile_q=attention_tile_q,
+                tile_k=attention_tile_k,
+                reduce_group_k=attention_reduce_group_k,
             )
     else:
         def run_attention() -> tuple[torch.Tensor, ks.CommMetrics]:
@@ -1382,6 +1415,10 @@ def run_phase_study(
                             weights,
                             num_heads=shape.num_heads,
                             attention_optimized=tensor_attention_optimized_prefill,
+                            attention_pipelined=config.tensor_attention_pipelined_prefill,
+                            attention_tile_q=config.tensor_attention_tile_q,
+                            attention_tile_k=config.tensor_attention_tile_k,
+                            attention_reduce_group_k=config.tensor_attention_reduce_group_k,
                             dtype_bytes=dtype_bytes,
                             ctx=ctx,
                             device=device,
@@ -1634,6 +1671,10 @@ def run_phase_study(
                                 weights,
                                 num_heads=shape.num_heads,
                                 attention_optimized=tensor_attention_optimized_decode,
+                                attention_pipelined=config.tensor_attention_pipelined_decode,
+                                attention_tile_q=config.tensor_attention_tile_q,
+                                attention_tile_k=config.tensor_attention_tile_k,
+                                attention_reduce_group_k=config.tensor_attention_reduce_group_k,
                                 dtype_bytes=dtype_bytes,
                                 ctx=ctx,
                                 device=device,
@@ -1840,6 +1881,11 @@ def run_phase_study(
                     "fabric_warmup_iters": config.fabric_warmup_iters,
                     "fabric_measure_iters": config.fabric_measure_iters,
                     "tensor_attention_naive_threshold": config.tensor_attention_naive_threshold,
+                    "tensor_attention_tile_q": config.tensor_attention_tile_q,
+                    "tensor_attention_tile_k": config.tensor_attention_tile_k,
+                    "tensor_attention_reduce_group_k": config.tensor_attention_reduce_group_k,
+                    "tensor_attention_pipelined_prefill": config.tensor_attention_pipelined_prefill,
+                    "tensor_attention_pipelined_decode": config.tensor_attention_pipelined_decode,
                 }
             )
             write_manifest(run_dir, manifest)

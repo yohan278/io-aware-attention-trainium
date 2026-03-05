@@ -60,6 +60,15 @@ torchrun --nproc_per_node=2 scripts/run_kernel_study.py \
   --distributed
 ```
 
+5-kernel dual-rank study with grouped distributed-merge attention (reduced collective count):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_kernel_study.py \
+  --config configs/experiments/trn2_kernel_inference_optimized.yaml \
+  --device trainium \
+  --distributed
+```
+
 Phase-aware prefill/decode study:
 
 ```bash
@@ -69,11 +78,32 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
+Inference-focused phase study (recommended for dual-die serving narrative):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_story.yaml \
+  --device trainium \
+  --distributed
+```
+
 Plot results:
 
 ```bash
 python scripts/plot_kernel_study.py --metrics-csv <run_dir>/metrics.csv --out-dir results/plots --prefix <name>
 python scripts/plot_phase_study.py --metrics-csv <run_dir>/metrics.csv --kernel-phase-csv <run_dir>/kernel_phase_metrics.csv --out-dir results/plots --prefix <name>
+```
+
+Curated inference plot set (with optional stale-plot purge):
+
+```bash
+python scripts/plot_inference_track.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --decode-slo-csv <run_dir>/decode_slo_summary.csv \
+  --break-even-csv <run_dir>/break_even_summary.csv \
+  --out-dir results/plots \
+  --prefix inference_story \
+  --purge-stale
 ```
 
 Break-even what-if sweep:
