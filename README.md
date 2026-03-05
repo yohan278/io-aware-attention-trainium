@@ -106,6 +106,12 @@ python scripts/plot_inference_track.py \
   --purge-stale
 ```
 
+One-command Trn2 reproduction script:
+
+```bash
+bash scripts/trn2_repro_inference_track.sh
+```
+
 Break-even what-if sweep:
 
 ```bash
@@ -137,5 +143,7 @@ pytest -q
 
 - Contribution guide: `CONTRIBUTING.md`
 - Experiment guide: `docs/EXPERIMENT_GUIDE.md`
+- Trn2 executed commands: `docs/TRN2_EXECUTED_COMMANDS.md`
+- Dual-die architecture diagrams: `docs/DUAL_DIE_COMPUTE_DIAGRAMS.md`
 - Trainium runbook: `docs/TRAINIUM_SELF_HOSTED.md`
 - AWS chip recommendation memo: `docs/AWS_CHIP_ADVICE_MEMO.md`

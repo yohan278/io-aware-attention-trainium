@@ -148,3 +148,15 @@ Each run directory (`results/<run_id>/`) may include:
 
 - Generated results and plots are not committed.
 - Keep only source code, configs, and documentation in version control.
+
+## 8) Trn2 Repro Script
+
+For the exact command chain used in this project:
+
+```bash
+bash scripts/trn2_repro_inference_track.sh
+```
+
+Command reference:
+
+- `docs/TRN2_EXECUTED_COMMANDS.md`
