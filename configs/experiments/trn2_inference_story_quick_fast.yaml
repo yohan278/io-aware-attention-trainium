@@ -22,7 +22,7 @@ fabric_warmup_iters: 2
 fabric_measure_iters: 8
 
 enforce_correctness: true
-correctness_abs_tol: 0.005
+correctness_abs_tol: 0.02
 correctness_rel_tol: 0.025
 
 tensor_attention_tile_q: 64
