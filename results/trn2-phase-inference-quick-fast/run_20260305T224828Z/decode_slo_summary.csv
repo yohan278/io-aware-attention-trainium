@@ -1,0 +1,10 @@
+setup,context_len,slo_ms,best_throughput_tokens_per_s,best_concurrency,best_latency_ms_p90,feasible
+dual_die_request_sharded,2048,250.0,1571.610275,16,40.900194,True
+dual_die_request_sharded,2048,500.0,1571.610275,16,40.900194,True
+dual_die_request_sharded,2048,1000.0,1571.610275,16,40.900194,True
+dual_die_tensor_optimized,2048,250.0,347.438443,16,227.761713,True
+dual_die_tensor_optimized,2048,500.0,347.438443,16,227.761713,True
+dual_die_tensor_optimized,2048,1000.0,347.438443,16,227.761713,True
+single_die,2048,250.0,1212.544615,16,58.93574,True
+single_die,2048,500.0,1212.544615,16,58.93574,True
+single_die,2048,1000.0,1212.544615,16,58.93574,True

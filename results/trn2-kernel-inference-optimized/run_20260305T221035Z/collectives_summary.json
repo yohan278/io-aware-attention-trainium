@@ -1,0 +1,593 @@
+{
+  "generated_at_utc": "2026-03-05T22:11:41Z",
+  "rows": [
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 6291456.0,
+          "bytes_total": 25165824.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 3.430434791238404,
+          "time_ms_p50": 1.7315830002644361,
+          "time_ms_total": 7.336045000556624
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 3145728.0,
+          "bytes_total": 12582912.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 2.8906578001984644,
+          "time_ms_p50": 1.0586530002001382,
+          "time_ms_total": 4.352958001163643
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die_native",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 9437184.0,
+          "bytes_total": 37748736.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 4.281483082640798,
+          "time_ms_p50": 2.2820504998435354,
+          "time_ms_total": 8.81674300035229
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_max": {
+          "bytes_p50": 32768.0,
+          "bytes_total": 131072.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0029982678844260842,
+          "time_ms_p50": 10.976913500371666,
+          "time_ms_total": 43.71590700111483
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 2129920.0,
+          "bytes_total": 8519680.0,
+          "count_p50": 16.0,
+          "count_total": 64.0,
+          "effective_gbps_p50": 0.1565632818896337,
+          "time_ms_p50": 13.706076000289613,
+          "time_ms_total": 54.41684600100416
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 4194304.0,
+          "bytes_total": 16777216.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 3.9099016635818726,
+          "time_ms_p50": 1.0692554997149273,
+          "time_ms_total": 4.290955999294965
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_sum": {
+          "bytes_p50": 2097152.0,
+          "bytes_total": 8388608.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 2.3870577806007622,
+          "time_ms_p50": 0.8641189999707422,
+          "time_ms_total": 3.514203999657184
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 1048576.0,
+          "bytes_total": 4194304.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 1.4653803650016899,
+          "time_ms_p50": 0.6106745001943636,
+          "time_ms_total": 2.8622630002246296
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 1048576.0,
+          "bytes_total": 4194304.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 1.0386177329526853,
+          "time_ms_p50": 1.0033315002146992,
+          "time_ms_total": 4.038352000861778
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 2048.0,
+          "bytes_total": 8192.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 0.0022397506525767444,
+          "time_ms_p50": 0.8612735000497196,
+          "time_ms_total": 3.6575500002982153
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:42Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 3145728.0,
+          "bytes_total": 12582912.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 1.7992617298275952,
+          "time_ms_p50": 1.6998745002183568,
+          "time_ms_total": 6.993375000092783
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_sum": {
+          "bytes_p50": 2097152.0,
+          "bytes_total": 8388608.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 2.7155103707456343,
+          "time_ms_p50": 0.7564910001747194,
+          "time_ms_total": 3.0891460000930238
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 512,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 12582912.0,
+          "bytes_total": 50331648.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 5.437972943344992,
+          "time_ms_p50": 2.2284310000486585,
+          "time_ms_total": 9.255590000975644
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "qkv_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 6291456.0,
+          "bytes_total": 25165824.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 5.8998490920488695,
+          "time_ms_p50": 0.9885794997899211,
+          "time_ms_total": 4.265502999714954
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die_native",
+      "timestamp": "2026-03-05T22:10:43Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 35651584.0,
+          "bytes_total": 142606336.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 10.47372368914052,
+          "time_ms_p50": 3.2918995000272844,
+          "time_ms_total": 13.61562900001445
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:44Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "attention",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_max": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 16.0,
+          "count_total": 64.0,
+          "effective_gbps_p50": 0.0023801436328422503,
+          "time_ms_p50": 27.327745500087985,
+          "time_ms_total": 110.13789100070426
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 4259840.0,
+          "bytes_total": 17039360.0,
+          "count_p50": 32.0,
+          "count_total": 128.0,
+          "effective_gbps_p50": 0.1550397485820044,
+          "time_ms_p50": 27.33345549995647,
+          "time_ms_total": 109.90317099867752
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:10:46Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:10:48Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 8388608.0,
+          "bytes_total": 33554432.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 6.116259939155986,
+          "time_ms_p50": 1.4153980000628508,
+          "time_ms_total": 5.486102999839204
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:10:58Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "mlp",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_sum": {
+          "bytes_p50": 4194304.0,
+          "bytes_total": 16777216.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 3.4669192140906286,
+          "time_ms_p50": 1.2012054999104294,
+          "time_ms_total": 4.839228999571787
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:11:00Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:11:05Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 2097152.0,
+          "bytes_total": 8388608.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 0.0022344296212668284,
+          "time_ms_p50": 0.8679200000187848,
+          "time_ms_total": 3754.2502660003265
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:11:11Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "rmsnorm",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 2097152.0,
+          "bytes_total": 8388608.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 1.9273407522464658,
+          "time_ms_p50": 1.0589695000362553,
+          "time_ms_total": 4.352425999513798
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 16384.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 4.318667896385082e-06,
+          "time_ms_p50": 0.7860300001993892,
+          "time_ms_total": 3793.762427000729
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:11:23Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:11:24Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 4194304.0,
+          "bytes_total": 16777216.0,
+          "count_p50": 2.0,
+          "count_total": 8.0,
+          "effective_gbps_p50": 1.9967884218852292,
+          "time_ms_p50": 2.0786295001471444,
+          "time_ms_total": 8.402100000239443
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_naive",
+      "timestamp": "2026-03-05T22:11:40Z"
+    },
+    {
+      "batch": 1,
+      "kernel": "out_proj",
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_reduce_sum": {
+          "bytes_p50": 4194304.0,
+          "bytes_total": 16777216.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 5.180780253530037,
+          "time_ms_p50": 0.7958549999784736,
+          "time_ms_total": 3.2383570001002226
+        }
+      },
+      "phase": "kernel",
+      "seq_len": 1024,
+      "setup": "dual_die_optimized",
+      "timestamp": "2026-03-05T22:11:41Z"
+    }
+  ]
+}

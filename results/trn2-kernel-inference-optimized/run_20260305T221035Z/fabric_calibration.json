@@ -1,0 +1,158 @@
+{
+  "collectives": {
+    "all_gather": {
+      "entries": [
+        {
+          "effective_gbps_p50": 0.0013544992289902195,
+          "effective_gbps_p90": 0.00189506008765444,
+          "latency_ms_p50": 0.8304154998768354,
+          "latency_ms_p90": 1.0522742999000911,
+          "message_bytes": 1024.0
+        },
+        {
+          "effective_gbps_p50": 0.004805318659342143,
+          "effective_gbps_p90": 0.005463439852064037,
+          "latency_ms_p50": 0.9347684999738703,
+          "latency_ms_p90": 1.065246799862507,
+          "message_bytes": 4096.0
+        },
+        {
+          "effective_gbps_p50": 0.01642479539284667,
+          "effective_gbps_p90": 0.017743693876672635,
+          "latency_ms_p50": 1.0796544997901947,
+          "latency_ms_p90": 1.3086045001273305,
+          "message_bytes": 16384.0
+        },
+        {
+          "effective_gbps_p50": 0.06139900967323781,
+          "effective_gbps_p90": 0.07211700323402362,
+          "latency_ms_p50": 1.148066999803632,
+          "latency_ms_p90": 1.2634343997433461,
+          "message_bytes": 65536.0
+        },
+        {
+          "effective_gbps_p50": 0.2639491306238634,
+          "effective_gbps_p90": 0.28769756717607775,
+          "latency_ms_p50": 1.0757019999800832,
+          "latency_ms_p90": 1.232918700134178,
+          "message_bytes": 262144.0
+        },
+        {
+          "effective_gbps_p50": 1.1679476112830334,
+          "effective_gbps_p90": 1.4857132505611943,
+          "latency_ms_p50": 0.9786825000901445,
+          "latency_ms_p90": 1.0140084001250216,
+          "message_bytes": 1048576.0
+        }
+      ],
+      "max_gbps": 1.1679476112830334
+    },
+    "all_reduce": {
+      "entries": [
+        {
+          "effective_gbps_p50": 0.0012359038613154734,
+          "effective_gbps_p90": 0.0015240962105357932,
+          "latency_ms_p50": 0.8460774997729459,
+          "latency_ms_p90": 1.0526384000968392,
+          "message_bytes": 1024.0
+        },
+        {
+          "effective_gbps_p50": 0.0053207141232686165,
+          "effective_gbps_p90": 0.005924707262537542,
+          "latency_ms_p50": 0.783766500035199,
+          "latency_ms_p90": 0.8716838998225285,
+          "message_bytes": 4096.0
+        },
+        {
+          "effective_gbps_p50": 0.023448541373860883,
+          "effective_gbps_p90": 0.024183038801026277,
+          "latency_ms_p50": 0.7124654998733604,
+          "latency_ms_p90": 0.7460089998858166,
+          "message_bytes": 16384.0
+        },
+        {
+          "effective_gbps_p50": 0.07652147769850845,
+          "effective_gbps_p90": 0.09468277059544458,
+          "latency_ms_p50": 0.8715079998182773,
+          "latency_ms_p90": 1.086204200055363,
+          "message_bytes": 65536.0
+        },
+        {
+          "effective_gbps_p50": 0.38295134904824324,
+          "effective_gbps_p90": 0.42766508500197287,
+          "latency_ms_p50": 0.6985625000197615,
+          "latency_ms_p90": 0.7592713999201806,
+          "message_bytes": 262144.0
+        },
+        {
+          "effective_gbps_p50": 1.4914962152205873,
+          "effective_gbps_p90": 1.5543178394681318,
+          "latency_ms_p50": 0.7170149999637943,
+          "latency_ms_p90": 0.7311057001061272,
+          "message_bytes": 1048576.0
+        }
+      ],
+      "max_gbps": 1.4914962152205873
+    },
+    "ping_pong": {
+      "entries": [
+        {
+          "effective_gbps_p50": 0.0011525517202093328,
+          "effective_gbps_p90": 0.001230770306050831,
+          "latency_ms_p50": 1.956585499783614,
+          "latency_ms_p90": 2.3883114001364447,
+          "message_bytes": 1024.0
+        },
+        {
+          "effective_gbps_p50": 0.004376280236327711,
+          "effective_gbps_p90": 0.005366572386414362,
+          "latency_ms_p50": 2.0207885002037074,
+          "latency_ms_p90": 2.404753399832771,
+          "message_bytes": 4096.0
+        },
+        {
+          "effective_gbps_p50": 0.016536004022220364,
+          "effective_gbps_p90": 0.018914658394793178,
+          "latency_ms_p50": 2.131165000037072,
+          "latency_ms_p90": 2.3846507998314337,
+          "message_bytes": 16384.0
+        },
+        {
+          "effective_gbps_p50": 0.07348599347626789,
+          "effective_gbps_p90": 0.07646319830688138,
+          "latency_ms_p50": 1.94883199992546,
+          "latency_ms_p90": 2.1303728997281723,
+          "message_bytes": 65536.0
+        },
+        {
+          "effective_gbps_p50": 0.3038679429225254,
+          "effective_gbps_p90": 0.3289631356871599,
+          "latency_ms_p50": 1.890884999966147,
+          "latency_ms_p90": 2.2037620001810865,
+          "message_bytes": 262144.0
+        },
+        {
+          "effective_gbps_p50": 1.155947517455175,
+          "effective_gbps_p90": 1.2722860987570535,
+          "latency_ms_p50": 1.9769204998283385,
+          "latency_ms_p90": 2.152589100160185,
+          "message_bytes": 1048576.0
+        }
+      ],
+      "max_gbps": 1.155947517455175
+    }
+  },
+  "dtype": "fp32",
+  "enabled": true,
+  "fabric_message_sizes": [
+    1024,
+    4096,
+    16384,
+    65536,
+    262144,
+    1048576
+  ],
+  "peak_gbps": 1.491496,
+  "timestamp": "2026-03-05T22:10:39Z",
+  "world_size": 2
+}

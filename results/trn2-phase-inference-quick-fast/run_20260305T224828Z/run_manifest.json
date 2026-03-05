@@ -1,0 +1,70 @@
+{
+  "benchmark_config_path": "/home/ubuntu/io-aware-attention-trainium/configs/experiments/trn2_inference_story_quick_fast.yaml",
+  "correctness_abs_tol": 0.02,
+  "correctness_rel_tol": 0.025,
+  "decode_slo_ms": [
+    250.0,
+    500.0,
+    1000.0
+  ],
+  "device_target": "trn2",
+  "distributed_backend": "xla",
+  "distributed_enabled": true,
+  "distributed_rank": 0,
+  "distributed_requested": true,
+  "distributed_world_size": 2,
+  "emulation_level": "L0",
+  "enable_fabric_calibration": true,
+  "fabric_measure_iters": 8,
+  "fabric_message_sizes": [
+    1024,
+    4096,
+    16384,
+    65536,
+    262144,
+    1048576
+  ],
+  "fabric_peak_gbps": 1.232922,
+  "fabric_warmup_iters": 2,
+  "git_commit": "eb4789316c7284c82bfa69bd6ce73e81709d4977",
+  "instance_type": "trn2.3xlarge",
+  "python_version": "3.10.19",
+  "rank_core_masks": [
+    {
+      "chip_id": "unknown",
+      "rank": 0,
+      "visible_cores": [
+        0
+      ],
+      "visible_cores_raw": "0"
+    },
+    {
+      "chip_id": "unknown",
+      "rank": 1,
+      "visible_cores": [
+        1
+      ],
+      "visible_cores_raw": "1"
+    }
+  ],
+  "seed": 123,
+  "setups": [
+    "single_die",
+    "dual_die_tensor_optimized",
+    "dual_die_request_sharded"
+  ],
+  "tensor_attention_naive_threshold": 0,
+  "tensor_attention_pipelined_decode": false,
+  "tensor_attention_pipelined_prefill": false,
+  "tensor_attention_reduce_group_k": 4,
+  "tensor_attention_tile_k": 128,
+  "tensor_attention_tile_q": 64,
+  "timestamp_utc": "2026-03-05T22:49:05.454762+00:00",
+  "torch_neuronx_version": "2.5.1.2.6.0",
+  "torch_version": "2.5.1+cpu",
+  "variant": "phase_study",
+  "visible_cores": [
+    0
+  ],
+  "visible_cores_raw": "0"
+}

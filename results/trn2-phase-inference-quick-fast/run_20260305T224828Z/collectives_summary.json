@@ -1,0 +1,205 @@
+{
+  "generated_at_utc": "2026-03-05T22:49:05Z",
+  "rows": [
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "prefill",
+      "seq_len": 2048,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:48:33Z"
+    },
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 16777216.0,
+          "bytes_total": 67108864.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 9.928295516306033,
+          "time_ms_p50": 1.6284174998872913,
+          "time_ms_total": 6.7593539988592966
+        },
+        "all_reduce_max": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 64.0,
+          "count_total": 128.0,
+          "effective_gbps_p50": 0.003716898982635915,
+          "time_ms_p50": 141.05521900091844,
+          "time_ms_total": 282.1104380018369
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 16777216.0,
+          "bytes_total": 135299072.0,
+          "count_p50": 1.0,
+          "count_total": 262.0,
+          "effective_gbps_p50": 0.5911720558640022,
+          "time_ms_p50": 2.106148999700963,
+          "time_ms_total": 228.86581099010073
+        }
+      },
+      "phase": "prefill",
+      "seq_len": 2048,
+      "setup": "dual_die_tensor_optimized",
+      "timestamp": "2026-03-05T22:48:40Z"
+    },
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "prefill",
+      "seq_len": 2048,
+      "setup": "dual_die_request_sharded",
+      "timestamp": "2026-03-05T22:48:40Z"
+    },
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "prefill",
+      "seq_len": 4096,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:48:41Z"
+    },
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {
+        "all_gather": {
+          "bytes_p50": 33554432.0,
+          "bytes_total": 134217728.0,
+          "count_p50": 1.0,
+          "count_total": 4.0,
+          "effective_gbps_p50": 13.83993109415542,
+          "time_ms_p50": 2.455867499975284,
+          "time_ms_total": 9.697860999949626
+        },
+        "all_reduce_max": {
+          "bytes_p50": 2097152.0,
+          "bytes_total": 4194304.0,
+          "count_p50": 256.0,
+          "count_total": 512.0,
+          "effective_gbps_p50": 0.0033682812666526243,
+          "time_ms_p50": 622.6178379943121,
+          "time_ms_total": 1245.2356759886243
+        },
+        "all_reduce_sum": {
+          "bytes_p50": 33554432.0,
+          "bytes_total": 406913024.0,
+          "count_p50": 1.0,
+          "count_total": 1030.0,
+          "effective_gbps_p50": 0.45625721129468255,
+          "time_ms_p50": 3.2694459996491787,
+          "time_ms_total": 891.8500659865458
+        }
+      },
+      "phase": "prefill",
+      "seq_len": 4096,
+      "setup": "dual_die_tensor_optimized",
+      "timestamp": "2026-03-05T22:48:58Z"
+    },
+    {
+      "batch": 2,
+      "context_len": 0,
+      "decode_steps": 0,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "prefill",
+      "seq_len": 4096,
+      "setup": "dual_die_request_sharded",
+      "timestamp": "2026-03-05T22:48:58Z"
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:48:59Z"
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "dual_die_tensor_optimized",
+      "timestamp": "2026-03-05T22:49:01Z"
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "dual_die_request_sharded",
+      "timestamp": "2026-03-05T22:49:02Z"
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "single_die",
+      "timestamp": "2026-03-05T22:49:03Z"
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "dual_die_tensor_optimized",
+      "timestamp": "2026-03-05T22:49:05Z"
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 4,
+      "model_dim": 1024,
+      "num_heads": 16,
+      "ops": {},
+      "phase": "decode",
+      "seq_len": 1,
+      "setup": "dual_die_request_sharded",
+      "timestamp": "2026-03-05T22:49:05Z"
+    }
+  ]
+}
