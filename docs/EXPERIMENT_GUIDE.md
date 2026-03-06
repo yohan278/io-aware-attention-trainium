@@ -86,7 +86,7 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
-Service-scale day-1 variant (throughput/capacity focus):
+Expanded service-scale day-1 variant (use when you want the larger matrix, not the small committed artifact set):
 
 ```bash
 torchrun --nproc_per_node=2 scripts/run_phase_study.py \
@@ -104,6 +104,15 @@ Run:
 ```bash
 torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
   --config configs/experiments/trn2_moe_service_day1.yaml \
+  --device trainium \
+  --distributed
+```
+
+Recommended on unstable Trn2 hosts:
+
+```bash
+NEURON_RT_VISIBLE_CORES=2,3 torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/trn2_moe_service_trainium_focus.yaml \
   --device trainium \
   --distributed
 ```
@@ -147,6 +156,13 @@ python scripts/simulate_mixed_traffic.py \
   --out-dir results/plots \
   --prefix <name>
 ```
+
+The simulator compares deployment policies:
+
+- `single->single`
+- `single->request`
+- `single->tensor`
+- `request->request`
 
 MoE service plots:
 
@@ -201,6 +217,19 @@ The script emits:
 - `*_decode_kv_efficiency.png`
 - `*_comm_breakdown.png`
 - `*_plot_manifest.md` (why each kept plot is useful)
+
+For the smaller public repo bundle, use:
+
+```bash
+python scripts/plot_best_graphs.py \
+  --phase-metrics-csv <phase_run>/metrics.csv \
+  --decode-slo-csv <phase_run>/decode_slo_summary.csv \
+  --phase-collectives-json <phase_run>/collectives_summary.json \
+  --kernel-metrics-csv <kernel_run>/metrics.csv \
+  --kernel-collectives-json <kernel_run>/collectives_summary.json \
+  --out-dir results/plots \
+  --prefix public_service
+```
 
 ## 7) Output Files
 

@@ -12,10 +12,17 @@ import numpy as np
 import pandas as pd
 
 SETUP_ORDER = ["single_die", "dual_die_tensor_optimized", "dual_die_request_sharded"]
+POLICY_ORDER = [
+    ("single->single", "single_die", "single_die"),
+    ("single->request", "single_die", "dual_die_request_sharded"),
+    ("single->tensor", "single_die", "dual_die_tensor_optimized"),
+    ("request->request", "dual_die_request_sharded", "dual_die_request_sharded"),
+]
 COLORS = {
-    "single_die": "#1f77b4",
-    "dual_die_tensor_optimized": "#ff7f0e",
-    "dual_die_request_sharded": "#2ca02c",
+    "single->single": "#1f77b4",
+    "single->tensor": "#ff7f0e",
+    "single->request": "#2ca02c",
+    "request->request": "#1b7f3a",
 }
 
 
@@ -113,7 +120,7 @@ def _build_requests(
     return requests
 
 
-def _build_profiles(metrics: pd.DataFrame, decode_slo_ms: float) -> dict[str, dict[str, dict[int, float]]]:
+def _build_setup_profiles(metrics: pd.DataFrame, decode_slo_ms: float) -> dict[str, dict[str, dict[int, float]]]:
     profiles: dict[str, dict[str, dict[int, float]]] = {}
     for setup in SETUP_ORDER:
         prefill_setup = metrics[(metrics["phase"] == "prefill") & (metrics["setup"] == setup)]
@@ -141,6 +148,18 @@ def _build_profiles(metrics: pd.DataFrame, decode_slo_ms: float) -> dict[str, di
 
         profiles[setup] = {"prefill": prefill_map, "decode": decode_map}
     return profiles
+
+
+def _build_policy_profiles(
+    setup_profiles: dict[str, dict[str, dict[int, float]]]
+) -> dict[str, dict[str, dict[int, float]]]:
+    policies: dict[str, dict[str, dict[int, float]]] = {}
+    for policy_name, prefill_setup, decode_setup in POLICY_ORDER:
+        policies[policy_name] = {
+            "prefill": dict(setup_profiles.get(prefill_setup, {}).get("prefill", {})),
+            "decode": dict(setup_profiles.get(decode_setup, {}).get("decode", {})),
+        }
+    return policies
 
 
 def _nearest_profile(profile: dict[int, float], context_len: int) -> float:
@@ -220,17 +239,17 @@ def _simulate_setup(
 
 
 def _plot_goodput(rows: list[dict[str, float]], out_path: Path) -> None:
-    setups = [str(row["setup"]) for row in rows]
+    policies = [str(row["policy"]) for row in rows]
     goodput = [float(row["goodput_tokens_per_s"]) for row in rows]
     on_time_ratio = [float(row["on_time_ratio"]) * 100.0 for row in rows]
 
     fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
-    x = np.arange(len(setups))
-    bars = ax.bar(x, goodput, color=[COLORS.get(setup, "#808080") for setup in setups], alpha=0.9)
+    x = np.arange(len(policies))
+    bars = ax.bar(x, goodput, color=[COLORS.get(policy, "#808080") for policy in policies], alpha=0.9)
     ax.set_xticks(x)
-    ax.set_xticklabels(setups)
+    ax.set_xticklabels(policies)
     ax.set_ylabel("Goodput (tokens/s under SLO)")
-    ax.set_title("Mixed-Traffic Service Goodput")
+    ax.set_title("Mixed-Traffic Service Goodput by Deployment Policy")
     ax.grid(axis="y", alpha=0.25)
 
     for bar, ratio in zip(bars, on_time_ratio):
@@ -258,7 +277,8 @@ def main() -> int:
 
     contexts, context_probs = _parse_context_weights(args.context_weights)
     metrics = pd.read_csv(args.metrics_csv)
-    profiles = _build_profiles(metrics, decode_slo_ms=float(args.decode_slo_ms))
+    setup_profiles = _build_setup_profiles(metrics, decode_slo_ms=float(args.decode_slo_ms))
+    profiles = _build_policy_profiles(setup_profiles)
     requests = _build_requests(
         seed=int(args.seed),
         duration_s=float(args.duration_s),
@@ -274,8 +294,8 @@ def main() -> int:
     out_dir = args.out_dir or args.metrics_csv.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     summary_rows: list[dict[str, float]] = []
-    for setup in SETUP_ORDER:
-        profile = profiles.get(setup, {"prefill": {}, "decode": {}})
+    for policy_name, _, _ in POLICY_ORDER:
+        profile = profiles.get(policy_name, {"prefill": {}, "decode": {}})
         result = _simulate_setup(
             requests=requests,
             profile=profile,
@@ -283,17 +303,17 @@ def main() -> int:
             slo_ms=float(args.decode_slo_ms),
             drop_wait_ms=float(args.drop_wait_ms),
         )
-        row = {"setup": setup}
+        row = {"policy": policy_name}
         row.update(result)
         summary_rows.append(row)
 
-    csv_path = out_dir / "service_trace_summary.csv"
-    md_path = out_dir / "service_trace_summary.md"
+    csv_path = out_dir / f"{args.prefix}_service_trace_summary.csv"
+    md_path = out_dir / f"{args.prefix}_service_trace_summary.md"
     plot_path = out_dir / f"{args.prefix}_mixed_trace_goodput.png"
-    req_stream_path = out_dir / "service_trace_requests.json"
+    req_stream_path = out_dir / f"{args.prefix}_service_trace_requests.json"
 
     fields = [
-        "setup",
+        "policy",
         "total_requests",
         "completed_requests",
         "on_time_requests",
@@ -322,12 +342,12 @@ def main() -> int:
         f"- decode_slo_ms: {float(args.decode_slo_ms):.2f}",
         f"- drop_wait_ms: {float(args.drop_wait_ms):.2f}",
         "",
-        "| Setup | Goodput (tokens/s) | Served (tokens/s) | On-time % | Drop % | p50 latency (ms) | p90 latency (ms) |",
+        "| Policy | Goodput (tokens/s) | Served (tokens/s) | On-time % | Drop % | p50 latency (ms) | p90 latency (ms) |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for row in summary_rows:
         lines.append(
-            f"| {row['setup']} | {float(row['goodput_tokens_per_s']):.2f} | "
+            f"| {row['policy']} | {float(row['goodput_tokens_per_s']):.2f} | "
             f"{float(row['served_tokens_per_s']):.2f} | {float(row['on_time_ratio']) * 100.0:.2f} | "
             f"{float(row['drop_ratio']) * 100.0:.2f} | {float(row['latency_ms_p50']):.2f} | "
             f"{float(row['latency_ms_p90']):.2f} |"

@@ -395,8 +395,18 @@ def _append_cache_with_window(
     return merged
 
 
-def _empty_kernel_breakdown() -> dict[str, dict[str, float]]:
-    return {name: {"total_s": 0.0, "comm_s": 0.0, "bytes": 0.0} for name in KERNELS}
+def _empty_kernel_breakdown() -> dict[str, dict[str, Any]]:
+    return {
+        name: {
+            "total_s": 0.0,
+            "comm_s": 0.0,
+            "bytes": 0.0,
+            "op_count": {},
+            "op_bytes": {},
+            "op_time_s": {},
+        }
+        for name in KERNELS
+    }
 
 
 def _empty_kernel_series() -> dict[str, dict[str, list[float]]]:
@@ -415,8 +425,8 @@ def _empty_kernel_series() -> dict[str, dict[str, list[float]]]:
 
 def _merge_kernel_breakdown(
     *,
-    dst: dict[str, dict[str, float]],
-    src: dict[str, dict[str, float]],
+    dst: dict[str, dict[str, Any]],
+    src: dict[str, dict[str, Any]],
 ) -> None:
     for name in KERNELS:
         payload = src.get(name)
@@ -425,6 +435,31 @@ def _merge_kernel_breakdown(
         dst[name]["total_s"] += float(payload.get("total_s", 0.0))
         dst[name]["comm_s"] += float(payload.get("comm_s", 0.0))
         dst[name]["bytes"] += float(payload.get("bytes", 0.0))
+        for field in ("op_count", "op_bytes", "op_time_s"):
+            dst_ops = dst[name].setdefault(field, {})
+            src_ops = payload.get(field, {})
+            if not isinstance(src_ops, dict):
+                continue
+            for op_name, value in src_ops.items():
+                dst_ops[str(op_name)] = float(dst_ops.get(str(op_name), 0.0)) + float(value)
+
+
+def _estimate_compute_hint_from_kernel_breakdown(kernel_breakdown: dict[str, dict[str, Any]]) -> float:
+    compute_hint = 0.0
+    for name in KERNELS:
+        payload = kernel_breakdown.get(name, {})
+        total_s = float(payload.get("total_s", 0.0))
+        comm_s = float(max(payload.get("comm_s", 0.0), 0.0))
+        compute_hint += min(max(total_s - comm_s, 0.0), total_s)
+    return compute_hint
+
+
+def _estimate_overlap_pct(*, total_s: float, comm_s: float, compute_hint_s: float) -> float:
+    if total_s <= 0.0 or comm_s <= 0.0:
+        return 0.0
+    bounded_compute = min(max(compute_hint_s, 0.0), total_s)
+    overlap_s = max(0.0, bounded_compute + comm_s - total_s)
+    return overlap_s / comm_s * 100.0
 
 
 def _timed_kernel(
@@ -869,9 +904,8 @@ def _bench_runner(
 
         total = end - start
         comm_t = float(max(comm.time_s_total, 0.0))
-        compute_t = max(total - comm_t, 0.0)
-        hidden_overlap = max(0.0, compute_t + comm_t - total)
-        overlap = (hidden_overlap / comm_t * 100.0) if comm_t > 0 else 0.0
+        compute_t = min(_estimate_compute_hint_from_kernel_breakdown(kernel_breakdown), total)
+        overlap = _estimate_overlap_pct(total_s=total, comm_s=comm_t, compute_hint_s=compute_t)
         bw = (comm.bytes_total / comm_t / 1e9) if comm_t > 0 else 0.0
 
         total_s.append(total)
@@ -885,9 +919,9 @@ def _bench_runner(
             payload = kernel_breakdown.get(kernel, {})
             k_total = float(payload.get("total_s", 0.0))
             k_comm = float(max(payload.get("comm_s", 0.0), 0.0))
-            k_compute = max(k_total - k_comm, 0.0)
-            k_hidden_overlap = max(0.0, k_compute + k_comm - k_total)
-            k_overlap = (k_hidden_overlap / k_comm * 100.0) if k_comm > 0 else 0.0
+            k_compute = min(max(k_total - k_comm, 0.0), k_total)
+            # Kernel-level overlap is not directly observable without deeper sub-kernel staging.
+            k_overlap = 0.0
             k_bytes = float(payload.get("bytes", 0.0))
             k_bw = (k_bytes / k_comm / 1e9) if k_comm > 0 else 0.0
 
@@ -1180,12 +1214,12 @@ def _build_break_even_summary(records: list[dict[str, Any]]) -> list[dict[str, A
         dual_latency = float(row["latency_ms_p50"])
         dual_compute = float(row["compute_ms_p50"])
         dual_comm = float(row["communication_ms_p50"])
-        measured_overlap = max(0.0, dual_compute + dual_comm - dual_latency)
+        observed_overlap_estimate = max(0.0, dual_compute + dual_comm - dual_latency)
         required_overlap = max(0.0, dual_compute + dual_comm - single_latency)
-        overlap_gap = max(0.0, required_overlap - measured_overlap)
+        overlap_gap = max(0.0, required_overlap - observed_overlap_estimate)
         speedup = (single_latency / dual_latency) if dual_latency > 0 else 0.0
         comm_fraction = (dual_comm / dual_latency * 100.0) if dual_latency > 0 else 0.0
-        comm_budget = max(0.0, single_latency - dual_compute + measured_overlap)
+        comm_budget = max(0.0, single_latency - dual_compute + observed_overlap_estimate)
 
         rows.append(
             {
@@ -1199,7 +1233,7 @@ def _build_break_even_summary(records: list[dict[str, Any]]) -> list[dict[str, A
                 "dual_latency_ms_p50": dual_latency,
                 "dual_compute_ms_p50": dual_compute,
                 "dual_comm_ms_p50": dual_comm,
-                "measured_overlap_ms_p50": measured_overlap,
+                "observed_overlap_estimate_ms_p50": observed_overlap_estimate,
                 "required_overlap_ms_to_tie_single": required_overlap,
                 "additional_overlap_needed_ms": overlap_gap,
                 "comm_budget_ms_to_tie_single": comm_budget,
@@ -1232,7 +1266,7 @@ def _write_break_even_summary(run_dir: Path, rows: list[dict[str, Any]]) -> tupl
         "dual_latency_ms_p50",
         "dual_compute_ms_p50",
         "dual_comm_ms_p50",
-        "measured_overlap_ms_p50",
+        "observed_overlap_estimate_ms_p50",
         "required_overlap_ms_to_tie_single",
         "additional_overlap_needed_ms",
         "comm_budget_ms_to_tie_single",
@@ -1251,7 +1285,7 @@ def _write_break_even_summary(run_dir: Path, rows: list[dict[str, Any]]) -> tupl
         "",
         "Dual wins when `compute + comm - overlap <= single latency`.",
         "",
-        "| Phase | Setup | Batch | Seq | Context | Steps | Single p50 (ms) | Dual p50 (ms) | Dual compute (ms) | Dual comm (ms) | Measured overlap (ms) | Required overlap to tie (ms) | Additional overlap needed (ms) | Comm budget to tie (ms) | Dual speedup | Dual wins |",
+        "| Phase | Setup | Batch | Seq | Context | Steps | Single p50 (ms) | Dual p50 (ms) | Dual compute (ms) | Dual comm (ms) | Observed overlap estimate (ms) | Required overlap to tie (ms) | Additional overlap needed (ms) | Comm budget to tie (ms) | Dual speedup | Dual wins |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     for row in rows:
@@ -1260,7 +1294,7 @@ def _write_break_even_summary(run_dir: Path, rows: list[dict[str, Any]]) -> tupl
             f"{int(row['context_len'])} | {int(row['decode_steps'])} | "
             f"{float(row['single_latency_ms_p50']):.4f} | {float(row['dual_latency_ms_p50']):.4f} | "
             f"{float(row['dual_compute_ms_p50']):.4f} | {float(row['dual_comm_ms_p50']):.4f} | "
-            f"{float(row['measured_overlap_ms_p50']):.4f} | "
+            f"{float(row['observed_overlap_estimate_ms_p50']):.4f} | "
             f"{float(row['required_overlap_ms_to_tie_single']):.4f} | "
             f"{float(row['additional_overlap_needed_ms']):.4f} | "
             f"{float(row['comm_budget_ms_to_tie_single']):.4f} | "

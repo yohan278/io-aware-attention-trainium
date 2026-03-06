@@ -566,8 +566,10 @@ def _bench_runner(
         total = end - start
         comm_t = float(max(comm.time_s_total, 0.0))
         compute_t = max(total - comm_t, 0.0)
-        hidden_overlap = max(0.0, compute_t + comm_t - total)
-        overlap = (hidden_overlap / comm_t * 100.0) if comm_t > 0 else 0.0
+        # This runner does not yet stage sub-kernel compute timing, so overlap is not
+        # directly measurable here. Report the residual compute estimate and keep
+        # overlap at 0 until deeper instrumentation exists.
+        overlap = 0.0
         bw = (comm.bytes_total / comm_t / 1e9) if comm_t > 0 else 0.0
 
         total_s.append(total)

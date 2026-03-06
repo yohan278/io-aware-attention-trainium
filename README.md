@@ -88,7 +88,7 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
-Service-scale day-1 matrix (throughput/capacity headline):
+Expanded service-scale day-1 matrix (rerun locally when you want the full paper sweep):
 
 ```bash
 torchrun --nproc_per_node=2 scripts/run_phase_study.py \
@@ -97,7 +97,7 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
-MoE service-scale decode validation (router dispatch + expert MLP + decode SLO):
+MoE service-scale decode validation (exploratory full matrix):
 
 ```bash
 torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
@@ -143,6 +143,19 @@ python scripts/plot_inference_track.py \
   --purge-stale
 ```
 
+Public plot bundle (recommended for the committed Trn2 artifacts):
+
+```bash
+python scripts/plot_best_graphs.py \
+  --phase-metrics-csv <phase_run>/metrics.csv \
+  --decode-slo-csv <phase_run>/decode_slo_summary.csv \
+  --phase-collectives-json <phase_run>/collectives_summary.json \
+  --kernel-metrics-csv <kernel_run>/metrics.csv \
+  --kernel-collectives-json <kernel_run>/collectives_summary.json \
+  --out-dir results/plots \
+  --prefix public_service
+```
+
 Capacity frontier plots:
 
 ```bash
@@ -161,6 +174,13 @@ python scripts/simulate_mixed_traffic.py \
   --out-dir results/plots \
   --prefix trn2_service_day1
 ```
+
+This now compares deployment policies, not just static setups:
+
+- `single->single`
+- `single->request`
+- `single->tensor`
+- `request->request`
 
 MoE service plots:
 
@@ -203,7 +223,23 @@ python scripts/what_if_dual_die.py \
 
 ## Outputs
 
-Generated artifacts are intentionally not committed. Each run writes a timestamped directory under `results/` with:
+Scratch runs write timestamped directories under `results/`. A small set of curated, report-grade artifacts is committed so the public repo has concrete evidence to inspect.
+
+Current committed headline artifacts:
+
+- `results/trn2-phase-inference-quick-fast/run_20260305T224828Z`
+- `results/trn2-moe-stable-small-merged-mask23/run_20260306T100500Z`
+
+Current committed public plots:
+
+- `results/plots/public_service_decode_slo_frontier.png`
+- `results/plots/public_service_hybrid_e2e.png`
+- `results/plots/public_service_prefill_ratio.png`
+- `results/plots/public_service_mixed_trace_goodput.png`
+- `results/plots/public_moe_mask23_remote_dispatch_ratio.png`
+- `results/plots/public_moe_mask23_locality_gain.png`
+
+Each run directory may include:
 
 - `metrics.csv`, `metrics.jsonl`
 - `run_manifest.json`

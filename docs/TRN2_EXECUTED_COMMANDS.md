@@ -2,6 +2,8 @@
 
 This is the command set used for Trn2 experiment runs and plot generation in this project.
 
+Not every command below corresponds to a committed artifact under `results/`; the heavier sweeps are kept here as reproducible command history.
+
 ## One-command Reproduction
 
 Run the full inference track with:

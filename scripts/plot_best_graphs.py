@@ -13,6 +13,12 @@ import pandas as pd
 from pandas.errors import EmptyDataError
 
 SETUP_ORDER = ["single_die", "dual_die_tensor_optimized", "dual_die_request_sharded"]
+POLICY_ORDER = [
+    ("single->single", "single_die", "single_die"),
+    ("single->request", "single_die", "dual_die_request_sharded"),
+    ("single->tensor", "single_die", "dual_die_tensor_optimized"),
+    ("request->request", "dual_die_request_sharded", "dual_die_request_sharded"),
+]
 SETUP_COLORS = {
     "single_die": "#1f77b4",
     "dual_die_tensor_optimized": "#ff7f0e",
@@ -26,6 +32,12 @@ SETUP_LABELS = {
     "dual_die_request_sharded": "dual-request",
     "dual_die_naive": "dual-naive",
     "dual_die_optimized": "dual-optimized",
+}
+POLICY_COLORS = {
+    "single->single": "#1f77b4",
+    "single->tensor": "#ff7f0e",
+    "single->request": "#2ca02c",
+    "request->request": "#1b7f3a",
 }
 
 
@@ -179,7 +191,7 @@ def _plot_crossover_heatmap(metrics: pd.DataFrame, out_path: Path, slo_ms: float
 
     contexts = sorted(int(x) for x in decode["context_len"].unique())
     concurrencies = sorted(int(x) for x in decode["batch"].unique())
-    if not contexts or not concurrencies:
+    if len(contexts) < 2 or len(concurrencies) < 2:
         return False
 
     setup_to_id = {"none": 0, "single_die": 1, "dual_die_tensor_optimized": 2, "dual_die_request_sharded": 3}
@@ -310,29 +322,27 @@ def _pick_hybrid_shape(decode: pd.DataFrame, context_override: int | None, conc_
     return context, max(common)
 
 
-def _plot_hybrid_end_to_end(
+def _build_hybrid_policy_rows(
+    *,
     metrics: pd.DataFrame,
-    out_path: Path,
     output_tokens: int,
     context_override: int | None,
     conc_override: int | None,
-) -> bool:
+) -> tuple[pd.DataFrame, int, int] | None:
     prefill = metrics[metrics["phase"] == "prefill"].copy()
     decode = metrics[metrics["phase"] == "decode"].copy()
     if prefill.empty or decode.empty:
-        return False
+        return None
 
     shape = _pick_hybrid_shape(decode, context_override=context_override, conc_override=conc_override)
     if shape is None:
-        return False
+        return None
     context, concurrency = shape
 
     rows: list[dict[str, float | str]] = []
-    setups = [s for s in SETUP_ORDER if s in set(prefill["setup"]) and s in set(decode["setup"])]
-
-    for setup in setups:
+    for policy_name, prefill_setup, decode_setup in POLICY_ORDER:
         decode_row = decode[
-            (decode["setup"] == setup)
+            (decode["setup"] == decode_setup)
             & (decode["context_len"].astype(int) == int(context))
             & (decode["batch"].astype(int) == int(concurrency))
         ]
@@ -340,7 +350,7 @@ def _plot_hybrid_end_to_end(
             continue
         decode_row = decode_row.iloc[0]
 
-        prefill_sub = prefill[prefill["setup"] == setup].copy()
+        prefill_sub = prefill[prefill["setup"] == prefill_setup].copy()
         if prefill_sub.empty:
             continue
         prefill_sub["seq_dist"] = (prefill_sub["seq_len"].astype(int) - int(context)).abs()
@@ -352,13 +362,17 @@ def _plot_hybrid_end_to_end(
 
         throughput = float(decode_row["throughput_tokens_per_s"])
         decode_ms_per_token_per_request = (1000.0 * float(concurrency) / throughput) if throughput > 0 else np.nan
-        total_request_ms = prefill_per_request_ms + float(output_tokens) * decode_ms_per_token_per_request
+        decode_tail_ms = float(output_tokens) * decode_ms_per_token_per_request
+        total_request_ms = prefill_per_request_ms + decode_tail_ms
         req_per_s = 1000.0 / total_request_ms if total_request_ms > 0 else np.nan
 
         rows.append(
             {
-                "setup": setup,
+                "policy": policy_name,
+                "prefill_setup": prefill_setup,
+                "decode_setup": decode_setup,
                 "prefill_per_request_ms": prefill_per_request_ms,
+                "decode_tail_ms": decode_tail_ms,
                 "decode_ms_per_token_per_request": decode_ms_per_token_per_request,
                 "total_request_ms": total_request_ms,
                 "requests_per_s": req_per_s,
@@ -366,21 +380,46 @@ def _plot_hybrid_end_to_end(
         )
 
     if not rows:
-        return False
+        return None
+    return pd.DataFrame(rows), context, concurrency
 
-    plot_df = pd.DataFrame(rows)
-    plot_df["label"] = plot_df["setup"].map(lambda x: SETUP_LABELS.get(x, x))
+
+def _plot_hybrid_end_to_end(
+    metrics: pd.DataFrame,
+    out_path: Path,
+    output_tokens: int,
+    context_override: int | None,
+    conc_override: int | None,
+) -> bool:
+    hybrid = _build_hybrid_policy_rows(
+        metrics=metrics,
+        output_tokens=output_tokens,
+        context_override=context_override,
+        conc_override=conc_override,
+    )
+    if hybrid is None:
+        return False
+    plot_df, context, concurrency = hybrid
+    plot_df["label"] = plot_df["policy"]
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), constrained_layout=True)
     x = np.arange(len(plot_df), dtype=float)
-    colors = [SETUP_COLORS.get(s, "#666666") for s in plot_df["setup"]]
+    colors = [POLICY_COLORS.get(policy, "#666666") for policy in plot_df["policy"]]
 
-    axes[0].bar(x, plot_df["total_request_ms"], color=colors)
+    axes[0].bar(x, plot_df["prefill_per_request_ms"], color="#9ecae1", label="prefill")
+    axes[0].bar(
+        x,
+        plot_df["decode_tail_ms"],
+        bottom=plot_df["prefill_per_request_ms"],
+        color=colors,
+        label=f"decode tail ({output_tokens} tokens)",
+    )
     axes[0].set_xticks(x)
     axes[0].set_xticklabels(plot_df["label"], rotation=15, ha="right")
     axes[0].set_ylabel("Total request time (ms)")
-    axes[0].set_title("Hybrid End-to-End Latency")
+    axes[0].set_title("Hybrid End-to-End Latency Components")
     axes[0].grid(axis="y", alpha=0.25)
+    axes[0].legend()
 
     axes[1].bar(x, plot_df["requests_per_s"], color=colors)
     axes[1].set_xticks(x)

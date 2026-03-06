@@ -1,6 +1,6 @@
 # AWS Chip Advice Memo: Dual-Die Direction for Trainium-Class Inference
 
-**Date:** March 5, 2026  
+**Date:** March 6, 2026  
 **Project:** `io-aware-attention-trainium` dual-die emulation study on Trn2
 
 ## Executive Recommendation
@@ -13,71 +13,63 @@ Measured data shows:
 - Request/KV-sharded dual-die can improve service throughput in multi-request decode and long-context prefill scenarios.
 - The break-even path for tensor-split requires large improvements in **collective latency, effective link bandwidth, and compute/comm overlap**.
 
-## Evidence Base (Runs Used)
+## Evidence Base (Committed Artifacts)
 
-The conclusions below are based on Trn2.3xlarge L0 emulation runs with IDs:
+The public repository currently keeps two compact Trn2-backed artifacts as the main evidence base:
 
-1. `run_20260305T032452Z` (kernel strict)
-2. `run_20260305T052604Z` (phase ultra-strict)
-3. `run_20260303T233006Z`, `run_20260303T234000Z` (extended phase sweeps)
+1. `results/trn2-phase-inference-quick-fast/run_20260305T224828Z`
+2. `results/trn2-moe-stable-small-merged-mask23/run_20260306T100500Z`
 
-Generated artifacts are intentionally not committed in this public repository; these run IDs are the provenance anchors for archived metrics.
+Larger sweeps exist as runnable commands in `docs/TRN2_EXECUTED_COMMANDS.md`, but the memo below is written to match the data that is actually committed in-repo.
 
 ## Key Findings
 
-### 1) Kernel-Level: Tensor-Parallel Dual-Dies Lose in Current Stack
+### 1) Public Trn2 Phase Artifact: Request Sharding Helps Decode, Tensor Split Loses Hard
 
-From strict 5-kernel study (`qkv_proj`, `attention`, `mlp`, `rmsnorm`, `out_proj`):
+From `results/trn2-phase-inference-quick-fast/run_20260305T224828Z`:
 
-- `dual_die_naive` median speedup vs single-die: **0.17x** (slowdown)
-- `dual_die_optimized` median speedup vs single-die: **0.26x** (still slowdown)
-- Dual comm share is high (median):
-  - naive: about **67%** of latency
-  - optimized: about **76%** of latency
+- Decode `ctx=2048, C=8`
+  - `single_die`: **657 tok/s**, p90 **55.0 ms**
+  - `dual_die_request_sharded`: **736.9 tok/s**, p90 **55.3 ms**
+  - `dual_die_tensor_optimized`: **184.3 tok/s**, p90 **218.5 ms**
+- Decode `ctx=2048, C=16`
+  - `single_die`: **1212.5 tok/s**, p90 **58.9 ms**
+  - `dual_die_request_sharded`: **1571.6 tok/s**, p90 **40.9 ms**
+  - `dual_die_tensor_optimized`: **347.4 tok/s**, p90 **227.8 ms**
 
-Attention is the blocker:
+Prefill in the same artifact shows the same split:
 
-- At `seq_len=1024`, attention p50:
-  - single: **1.146 ms**
-  - dual naive: **4.480 ms**
-  - dual optimized (distributed merge): **231.310 ms**
+- `seq=2048`
+  - `single_die`: **14.35 ms**
+  - `dual_die_request_sharded`: **23.82 ms**
+  - `dual_die_tensor_optimized`: **410.75 ms**
+- `seq=4096`
+  - `single_die`: **36.72 ms**
+  - `dual_die_request_sharded`: **40.61 ms**
+  - `dual_die_tensor_optimized`: **1646.05 ms**
 
-Collectives for optimized attention (`seq_len=1024`) show many small reductions:
+Interpretation: current dual-die value comes from service-level partitioning, not tensor-parallel collectives on the latency path.
 
-- `all_reduce_max` count p50: **64**
-- `all_reduce_sum` count p50: **128**
+### 2) Public Trn2 MoE Artifact: Locality Helps Communication, But This Is Not Yet a Single-Die Win
 
-This indicates latency-dominated collective overhead.
+From `results/trn2-moe-stable-small-merged-mask23/run_20260306T100500Z`:
 
-### 2) Prefill/Decode: Dual Benefit Appears in Sharding, Not Tensor Collectives
+- Locality routing cuts remote expert dispatch materially:
+  - median remote-dispatch delta vs naive: **-0.1875**
+  - roughly **40%** median relative reduction
+- Locality improves dual-MoE throughput vs naive modestly:
+  - median throughput ratio: **1.034x**
+- In one stronger case (`ctx=2048, C=16, skew=0.0`):
+  - naive: **1326 tok/s**
+  - locality: **2985 tok/s**
 
-Ultra-strict run (`measure_iters=2`, `decode_steps=1`) confirms direction but is too short for stable decode claims:
+Interpretation: locality-aware placement is a real communication improvement, but the public MoE artifact should be pitched as “remote-dispatch reduction and dual-path improvement,” not as proof that dual-die MoE already beats single-die end to end.
 
-- Prefill tensor-optimized dual:
-  - `seq=2048`: **807.1 ms** vs single **14.4 ms**
-  - `seq=4096`: **4051.0 ms** vs single **36.7 ms**
-- Prefill request-sharded dual:
-  - near parity but not consistent win in this strict short run
+### 3) Overlap and Link-Util Claims Need Better Instrumentation Than the Old Repo Used
 
-Extended phase sweeps (`decode_steps=8`) are more representative:
-
-- `dual_die_tensor_optimized` median decode speedup: **0.078x** (major loss)
-- `dual_die_request_sharded` median decode speedup: **1.20x** (wins)
-- `dual_die_request_sharded` median prefill speedup: **1.58x** (wins)
-
-Interpretation: dual-die value is service-level parallelism and memory partitioning, not single-stream tensor-parallel attention in current software/hardware conditions.
-
-### 3) Break-Even Math: Why Tensor-Split Is Not Winning
-
-In extended run (`run_20260303T234000Z`), tensor-optimized decode rows need very large comm reduction to tie single-die:
-
-- comm fraction median: **91.16%**
-- examples of required comm reduction:
-  - decode `ctx=2048`, batch 8: roughly **243x**
-  - decode `ctx=4096`, batch 8: roughly **32x**
-  - decode `ctx=4096`, batch 16: roughly **75x**
-
-In ultra-strict run, measured overlap is effectively **0%**, so communication is not hidden.
+- Older overlap values in this repo were derived from `compute = total - comm`, which made the overlap metric tautological.
+- The current repo fixes that in the phase runner and removes misleading prose that treated those values as direct measurements.
+- Link-utilization percentages from kernel artifacts should be treated as calibration-relative, not physical-link utilization, unless calibration covers the workload payload range.
 
 ## Advice to AWS Silicon/Runtime Teams
 
@@ -124,11 +116,12 @@ Practical split:
 ## Confidence and Caveats
 
 - High confidence:
-  - tensor-split dual currently loses due communication dominance
-  - request/KV sharding is the most credible dual-die benefit path
+  - tensor-split dual currently loses due communication dominance on the public Trn2 phase artifact
+  - request/KV sharding is the most credible near-term dual-die inference path
 - Medium confidence:
-  - exact magnitude of decode throughput gain under strict tolerances, because short strict run used `decode_steps=1` and only 2 measured iterations
+  - exact break-even thresholds for next-gen overlap/bandwidth, because the public repo keeps compact runs rather than the full service-day1 matrix
+  - MoE end-to-end upside versus single-die, because the current public Trn2 MoE run validates locality gains more clearly than absolute single-die wins
 - Required next run for final claims:
-  - multi-chip Trn2 placement
-  - `decode_steps >= 16`, `measure_iters >= 5`
-  - strict correctness gates retained
+  - a committed multi-context service-day1 Trn2 run
+  - multi-chip Trn2 placement for real cross-chip collective costs
+  - `decode_steps >= 16`, `measure_iters >= 5`, with strict correctness gates retained

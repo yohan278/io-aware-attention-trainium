@@ -1,0 +1,11 @@
+{
+  "arrival_rate_rps": 10.0,
+  "context_weights": "2048:0.5,4096:0.35,8192:0.15",
+  "decode_slo_ms": 250.0,
+  "decode_tokens": 128,
+  "drop_wait_ms": 2000.0,
+  "duration_s": 90.0,
+  "prefill_ratio": 0.3,
+  "request_count": 893,
+  "seed": 123
+}

@@ -38,7 +38,7 @@ flowchart LR
 
 ## Why this is credible
 
-- Separates compute time and communication time explicitly.
-- Tracks communication bytes and achieved link utilization per setup.
+- Separates wall time and communication time explicitly, with overlap reported only when it is directly observable or clearly marked as an estimate.
+- Tracks communication bytes and calibration-relative effective link rate per setup.
 - Uses both kernel-level and end-to-end phase-level measurements.
 - Includes break-even modeling to map today’s data to next-gen chip requirements.

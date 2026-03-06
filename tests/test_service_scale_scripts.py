@@ -145,7 +145,10 @@ def test_simulate_mixed_traffic_is_deterministic(tmp_path: Path) -> None:
     subprocess.run(base_cmd + ["--out-dir", str(out_a)], check=True)
     subprocess.run(base_cmd + ["--out-dir", str(out_b)], check=True)
 
-    summary_a = (out_a / "service_trace_summary.csv").read_text(encoding="utf-8")
-    summary_b = (out_b / "service_trace_summary.csv").read_text(encoding="utf-8")
+    summary_a = (out_a / "unit_service_trace_summary.csv").read_text(encoding="utf-8")
+    summary_b = (out_b / "unit_service_trace_summary.csv").read_text(encoding="utf-8")
     assert summary_a == summary_b
     assert (out_a / "unit_mixed_trace_goodput.png").exists()
+    assert (out_a / "unit_service_trace_requests.json").exists()
+    assert "single->request" in summary_a
+    assert "single->tensor" in summary_a

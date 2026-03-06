@@ -162,3 +162,65 @@ def test_phase_study_runtime_failure_logging_continues(tmp_path: Path, monkeypat
     lines = [line for line in failures_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert lines
     assert any("intentional prefill failure" in line for line in lines)
+
+
+def test_merge_kernel_breakdown_preserves_collective_op_metadata() -> None:
+    dst = ps._empty_kernel_breakdown()
+    src = ps._empty_kernel_breakdown()
+    src["attention"] = {
+        "total_s": 2.5,
+        "comm_s": 1.25,
+        "bytes": 512.0,
+        "op_count": {"all_reduce_sum": 4.0},
+        "op_bytes": {"all_reduce_sum": 1024.0},
+        "op_time_s": {"all_reduce_sum": 0.25},
+    }
+
+    ps._merge_kernel_breakdown(dst=dst, src=src)
+
+    attention = dst["attention"]
+    assert float(attention["total_s"]) == 2.5
+    assert float(attention["comm_s"]) == 1.25
+    assert float(attention["bytes"]) == 512.0
+    assert attention["op_count"]["all_reduce_sum"] == 4.0
+    assert attention["op_bytes"]["all_reduce_sum"] == 1024.0
+    assert attention["op_time_s"]["all_reduce_sum"] == 0.25
+
+
+def test_break_even_summary_uses_observed_overlap_estimate() -> None:
+    rows = ps._build_break_even_summary(
+        [
+            {
+                "phase": "decode",
+                "setup": "single_die",
+                "batch": 8,
+                "seq_len": 1,
+                "context_len": 2048,
+                "decode_steps": 16,
+                "model_dim": 1024,
+                "num_heads": 16,
+                "latency_ms_p50": 100.0,
+                "compute_ms_p50": 100.0,
+                "communication_ms_p50": 0.0,
+            },
+            {
+                "phase": "decode",
+                "setup": "dual_die_request_sharded",
+                "batch": 8,
+                "seq_len": 1,
+                "context_len": 2048,
+                "decode_steps": 16,
+                "model_dim": 1024,
+                "num_heads": 16,
+                "latency_ms_p50": 90.0,
+                "compute_ms_p50": 70.0,
+                "communication_ms_p50": 30.0,
+            },
+        ]
+    )
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert "observed_overlap_estimate_ms_p50" in row
+    assert "measured_overlap_ms_p50" not in row
+    assert float(row["observed_overlap_estimate_ms_p50"]) == 10.0

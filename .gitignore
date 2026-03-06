@@ -9,3 +9,6 @@ __pycache__/
 
 results/*
 !results/.gitkeep
+!results/plots/
+results/plots/*
+!results/plots/public_*
