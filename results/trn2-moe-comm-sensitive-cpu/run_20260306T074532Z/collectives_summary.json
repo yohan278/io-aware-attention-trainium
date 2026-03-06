@@ -1,0 +1,789 @@
+{
+  "generated_at_utc": "2026-03-06T07:46:09Z",
+  "rows": [
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:33Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00034196719803930293,
+          "time_ms_p50": 12.302579999868613,
+          "time_ms_total": 59.888784998747724
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.020604555503881503,
+          "time_ms_p50": 13.027687000430888,
+          "time_ms_total": 63.61311699993166
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0197922723467029,
+          "time_ms_p50": 13.14731299999039,
+          "time_ms_total": 66.22382599834964
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:34Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00035984511548473795,
+          "time_ms_p50": 11.273053999957483,
+          "time_ms_total": 56.91337500138616
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0218107284319265,
+          "time_ms_p50": 12.472733999402408,
+          "time_ms_total": 60.09519599911073
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.02299905808147325,
+          "time_ms_p50": 11.493524001252808,
+          "time_ms_total": 56.99016000380652
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:45:34Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:37Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0007417806637114609,
+          "time_ms_p50": 11.350281999966683,
+          "time_ms_total": 55.21847899763088
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.038140542625539134,
+          "time_ms_p50": 14.32563700063838,
+          "time_ms_total": 68.73106200237089
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.03986397428441055,
+          "time_ms_p50": 13.502295998932823,
+          "time_ms_total": 65.75962500119203
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:39Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0007306853209215205,
+          "time_ms_p50": 11.361234001014964,
+          "time_ms_total": 56.05696300062846
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.035239950369180865,
+          "time_ms_p50": 14.87856799894871,
+          "time_ms_total": 74.38829999864538
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.035103920629358326,
+          "time_ms_p50": 15.892831001110608,
+          "time_ms_total": 74.6765589997267
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:45:41Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:42Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0003343022276013371,
+          "time_ms_p50": 12.538613998913206,
+          "time_ms_total": 61.26193099862576
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.019834530154091985,
+          "time_ms_p50": 13.165962999210024,
+          "time_ms_total": 66.08273499887218
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0198742773645479,
+          "time_ms_p50": 13.445973999296257,
+          "time_ms_total": 65.95057399863435
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:43Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00032113104361370775,
+          "time_ms_p50": 12.819888999274553,
+          "time_ms_total": 63.7745879985232
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.020118859864052933,
+          "time_ms_p50": 13.298731000304542,
+          "time_ms_total": 65.1488209996387
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.019980957479262554,
+          "time_ms_p50": 13.119392001044616,
+          "time_ms_total": 65.59845799984032
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:45:44Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:46Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0008343835613575008,
+          "time_ms_p50": 9.999214999425021,
+          "time_ms_total": 49.09013299993603
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.05113291800732541,
+          "time_ms_p50": 10.155573998872569,
+          "time_ms_total": 51.26716999848213
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.04788114027041469,
+          "time_ms_p50": 11.020455001016671,
+          "time_ms_total": 54.748905000906234
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:48Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0008130649533598122,
+          "time_ms_p50": 10.06506800013085,
+          "time_ms_total": 50.37727899934907
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.04093632153446274,
+          "time_ms_p50": 11.426053000832326,
+          "time_ms_total": 64.03701900262604
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.04190934488719599,
+          "time_ms_p50": 11.748493000141025,
+          "time_ms_total": 62.550249999276275
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:45:51Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:52Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00037173038351802866,
+          "time_ms_p50": 10.925137000867835,
+          "time_ms_total": 55.09369399987918
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0238168946837829,
+          "time_ms_p50": 11.254359000758996,
+          "time_ms_total": 55.03320300158521
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.023175621746534102,
+          "time_ms_p50": 11.516622000272037,
+          "time_ms_total": 56.55598000066675
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:52Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00034513678091817215,
+          "time_ms_p50": 11.740386999463226,
+          "time_ms_total": 59.338793001188606
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.021875189320015344,
+          "time_ms_p50": 12.04378700003872,
+          "time_ms_total": 59.91811000239977
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.022730305580140244,
+          "time_ms_p50": 11.80124699976659,
+          "time_ms_total": 57.663984999180684
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:45:53Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:45:55Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0009173100322328299,
+          "time_ms_p50": 8.718436999060941,
+          "time_ms_total": 44.65229699962947
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.051018010187610034,
+          "time_ms_p50": 10.393215000021883,
+          "time_ms_total": 51.382639000621566
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.048736270173627944,
+          "time_ms_p50": 10.583043000679027,
+          "time_ms_total": 53.788276999057416
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:45:58Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 2048,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.000893753132559654,
+          "time_ms_p50": 9.473119999711344,
+          "time_ms_total": 45.82920999973794
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.052105064978244846,
+          "time_ms_p50": 10.156116999951337,
+          "time_ms_total": 50.31065600041984
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.04949408486305458,
+          "time_ms_p50": 10.782846000893187,
+          "time_ms_total": 52.96471300061967
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:46:00Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:46:01Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00035541389597309705,
+          "time_ms_p50": 11.432225000589824,
+          "time_ms_total": 57.622957999228674
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.02230079738489824,
+          "time_ms_p50": 11.883218000548368,
+          "time_ms_total": 58.7745800016819
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.021749839215820337,
+          "time_ms_p50": 11.918262997369311,
+          "time_ms_total": 60.26343399571488
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:46:02Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 4096.0,
+          "bytes_total": 20480.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.00036439768435490264,
+          "time_ms_p50": 10.880718000407796,
+          "time_ms_total": 56.20233299850952
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.022164251797867324,
+          "time_ms_p50": 11.75664099991991,
+          "time_ms_total": 59.136667998245684
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1310720.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.02146081314899056,
+          "time_ms_p50": 12.347678999049094,
+          "time_ms_total": 61.07503899784206
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:46:02Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T07:46:05Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.0008448659634451231,
+          "time_ms_p50": 9.733492999657756,
+          "time_ms_total": 48.48106299959909
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.052171784051381356,
+          "time_ms_p50": 9.922919000473485,
+          "time_ms_total": 50.24631700189275
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.048845784860329075,
+          "time_ms_p50": 10.774381999453908,
+          "time_ms_total": 53.66768099838737
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T07:46:07Z",
+      "top_k": 2
+    },
+    {
+      "batch": 32,
+      "context_len": 4096,
+      "decode_steps": 16,
+      "hidden_dim": 512,
+      "model_dim": 256,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_dispatch_meta": {
+          "bytes_p50": 8192.0,
+          "bytes_total": 40960.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.000863222827732791,
+          "time_ms_p50": 9.629761000269355,
+          "time_ms_total": 47.450088996811246
+        },
+        "all_gather_dispatch_response": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.05048983289006878,
+          "time_ms_p50": 10.442026000418991,
+          "time_ms_total": 51.92015599868682
+        },
+        "all_gather_dispatch_x": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2621440.0,
+          "count_p50": 16.0,
+          "count_total": 80.0,
+          "effective_gbps_p50": 0.047591968295453375,
+          "time_ms_p50": 10.971014000460855,
+          "time_ms_total": 55.081563000840106
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 2.5,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T07:46:09Z",
+      "top_k": 2
+    }
+  ]
+}

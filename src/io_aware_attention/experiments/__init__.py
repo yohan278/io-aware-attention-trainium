@@ -10,12 +10,20 @@ from io_aware_attention.experiments.phase_study import (
     load_phase_study_config,
     run_phase_study,
 )
+from io_aware_attention.experiments.moe_service_study import (
+    MoEStudyConfig,
+    load_moe_study_config,
+    run_moe_service_study,
+)
 
 __all__ = [
     "KernelStudyConfig",
     "PhaseStudyConfig",
+    "MoEStudyConfig",
     "load_kernel_study_config",
     "load_phase_study_config",
+    "load_moe_study_config",
     "run_kernel_study",
     "run_phase_study",
+    "run_moe_service_study",
 ]

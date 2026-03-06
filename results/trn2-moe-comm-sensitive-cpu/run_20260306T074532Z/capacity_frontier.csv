@@ -1,0 +1,13 @@
+setup,context_len,num_experts,top_k,routing_skew,slo_ms,max_tested_concurrency,max_feasible_concurrency,best_throughput_tokens_per_s,best_concurrency,best_latency_ms_p90,has_feasible
+dual_die_moe_locality,2048,8,2,0.0,120.0,32,16,2734.855298,16,94.863895,True
+dual_die_moe_locality,2048,8,2,2.5,120.0,32,16,2689.105657,16,95.446912,True
+dual_die_moe_locality,4096,8,2,0.0,120.0,32,16,2675.192785,16,95.938272,True
+dual_die_moe_locality,4096,8,2,2.5,120.0,32,16,2695.110129,16,95.804305,True
+dual_die_moe_naive,2048,8,2,0.0,120.0,32,16,2701.054751,16,95.660953,True
+dual_die_moe_naive,2048,8,2,2.5,120.0,32,16,2754.554279,16,93.578035,True
+dual_die_moe_naive,4096,8,2,0.0,120.0,32,16,2691.4134,16,96.025252,True
+dual_die_moe_naive,4096,8,2,2.5,120.0,32,16,2696.028666,16,95.604855,True
+single_die,2048,8,2,0.0,120.0,32,0,0.0,0,0.0,False
+single_die,2048,8,2,2.5,120.0,32,0,0.0,0,0.0,False
+single_die,4096,8,2,0.0,120.0,32,0,0.0,0,0.0,False
+single_die,4096,8,2,2.5,120.0,32,0,0.0,0,0.0,False

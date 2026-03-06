@@ -9,6 +9,7 @@ This repository contains:
 - A benchmark harness for single-rank and distributed attention-related kernels.
 - A 5-kernel study (`qkv_proj`, `attention`, `mlp`, `rmsnorm`, `out_proj`) with single vs dual-rank setups.
 - A phase-aware study for prefill/decode behavior, including request/KV sharding and break-even analysis.
+- A MoE service-scale decode study (router dispatch + expert MLP) with naive vs locality-aware dual-die routing.
 - Plotting and what-if modeling scripts for communication/overlap sensitivity.
 
 ## Repository Layout
@@ -96,6 +97,24 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
+MoE service-scale decode validation (router dispatch + expert MLP + decode SLO):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/trn2_moe_service_day1.yaml \
+  --device trainium \
+  --distributed
+```
+
+MoE communication-sensitive validation (smaller expert MLP to stress dispatch/collective effects):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/moe_comm_sensitive_cpu.yaml \
+  --device cpu \
+  --distributed
+```
+
 Plot results:
 
 ```bash
@@ -134,6 +153,28 @@ python scripts/simulate_mixed_traffic.py \
   --prefix trn2_service_day1
 ```
 
+MoE service plots:
+
+```bash
+python scripts/plot_moe_service_study.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --decode-slo-csv <run_dir>/decode_slo_summary.csv \
+  --capacity-csv <run_dir>/capacity_frontier.csv \
+  --out-dir results/plots \
+  --prefix trn2_moe_day1 \
+  --purge-stale
+```
+
+MoE summary table export:
+
+```bash
+python scripts/summarize_moe_service.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --decode-slo-csv <run_dir>/decode_slo_summary.csv \
+  --out-dir results/plots \
+  --prefix trn2_moe_day1
+```
+
 One-command Trn2 reproduction script:
 
 ```bash
@@ -159,6 +200,7 @@ Generated artifacts are intentionally not committed. Each run writes a timestamp
 - `run_manifest.json`
 - optional fabric and collective summaries
 - phase-study derived summaries (`break_even_summary.*`, `decode_slo_summary.*`)
+- MoE summaries (`decode_slo_summary.*`, `capacity_frontier.*`) scoped by `routing_skew`, `num_experts`, and `top_k`
 - service-capacity artifacts (`capacity_frontier.*`)
 - runtime skip logs for fault-tolerant sweeps (`runtime_failures.jsonl`, when enabled and needed)
 
@@ -185,3 +227,4 @@ pytest -q
 - Dual-die architecture diagrams: `docs/DUAL_DIE_COMPUTE_DIAGRAMS.md`
 - Trainium runbook: `docs/TRAINIUM_SELF_HOSTED.md`
 - AWS chip recommendation memo: `docs/AWS_CHIP_ADVICE_MEMO.md`
+- MoE plot curation notes: `docs/MOE_RESULTS_CURATION.md`

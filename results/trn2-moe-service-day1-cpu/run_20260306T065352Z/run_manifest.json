@@ -1,0 +1,65 @@
+{
+  "benchmark_config_path": "/home/ubuntu/io-aware-attention-trainium/configs/experiments/trn2_moe_service_day1.yaml",
+  "capacity_slo_ms": 250.0,
+  "continue_on_runtime_error": true,
+  "correctness_abs_tol": 0.02,
+  "correctness_rel_tol": 0.025,
+  "decode_slo_ms": [
+    75.0,
+    100.0,
+    150.0,
+    250.0,
+    500.0,
+    1000.0
+  ],
+  "device_target": "trn2",
+  "distributed_backend": "gloo",
+  "distributed_enabled": true,
+  "distributed_rank": 0,
+  "distributed_requested": true,
+  "distributed_world_size": 2,
+  "emulation_level": "L0",
+  "enable_fabric_calibration": true,
+  "fabric_measure_iters": 8,
+  "fabric_message_sizes": [
+    1024,
+    4096,
+    16384,
+    65536,
+    262144,
+    1048576
+  ],
+  "fabric_peak_gbps": 1.460196,
+  "fabric_warmup_iters": 2,
+  "git_commit": "b306f2328315bdc9bcf4ea1f18b5ba63704a78fa",
+  "instance_type": "trn2.3xlarge",
+  "python_version": "3.10.19",
+  "rank_core_masks": [
+    {
+      "chip_id": "unknown",
+      "rank": 0,
+      "visible_cores": [],
+      "visible_cores_raw": "all"
+    },
+    {
+      "chip_id": "unknown",
+      "rank": 1,
+      "visible_cores": [],
+      "visible_cores_raw": "all"
+    }
+  ],
+  "record_runtime_failures": true,
+  "runtime_failure_count": 0,
+  "seed": 42,
+  "setups": [
+    "single_die",
+    "dual_die_moe_naive",
+    "dual_die_moe_locality"
+  ],
+  "timestamp_utc": "2026-03-06T07:24:48.822077+00:00",
+  "torch_neuronx_version": "2.5.1.2.6.0",
+  "torch_version": "2.5.1+cpu",
+  "variant": "moe_service_study",
+  "visible_cores": [],
+  "visible_cores_raw": "all"
+}

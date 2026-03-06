@@ -10,6 +10,7 @@ OUT_ROOT="${OUT_ROOT:-${ROOT_DIR}/results}"
 PLOTS_DIR="${PLOTS_DIR:-${OUT_ROOT}/plots}"
 RUN_FULL_PHASE="${RUN_FULL_PHASE:-0}"
 RUN_SERVICE_DAY1="${RUN_SERVICE_DAY1:-0}"
+RUN_MOE_DAY1="${RUN_MOE_DAY1:-0}"
 
 mkdir -p "${OUT_ROOT}" "${PLOTS_DIR}"
 
@@ -138,9 +139,32 @@ if [[ "${RUN_SERVICE_DAY1}" == "1" ]]; then
     --context-weights "2048:0.5,4096:0.35,8192:0.15"
 fi
 
+if [[ "${RUN_MOE_DAY1}" == "1" ]]; then
+  echo "[repro] moe service study (decode throughput/capacity)"
+  torchrun --nproc_per_node="${NPROC}" scripts/run_moe_service_study.py \
+    --config configs/experiments/trn2_moe_service_day1.yaml \
+    --device "${DEVICE}" \
+    --distributed \
+    --output-dir "${OUT_ROOT}/trn2-moe-service-day1"
+
+  MOE_DAY1_DIR="$(ls -dt "${OUT_ROOT}/trn2-moe-service-day1"/run_* | head -n1)"
+  echo "[repro] moe day1 run dir: ${MOE_DAY1_DIR}"
+
+  python scripts/plot_moe_service_study.py \
+    --metrics-csv "${MOE_DAY1_DIR}/metrics.csv" \
+    --decode-slo-csv "${MOE_DAY1_DIR}/decode_slo_summary.csv" \
+    --capacity-csv "${MOE_DAY1_DIR}/capacity_frontier.csv" \
+    --out-dir "${PLOTS_DIR}" \
+    --prefix trn2_moe_day1 \
+    --purge-stale
+fi
+
 echo "[repro] complete"
 echo "  kernel: ${KERNEL_RUN_DIR}"
 echo "  quick phase: ${PHASE_QUICK_DIR}"
 if [[ "${RUN_SERVICE_DAY1}" == "1" ]]; then
   echo "  service day1: ${PHASE_DAY1_DIR}"
+fi
+if [[ "${RUN_MOE_DAY1}" == "1" ]]; then
+  echo "  moe day1: ${MOE_DAY1_DIR}"
 fi

@@ -1,0 +1,86 @@
+device: cpu
+dtype: fp32
+seed: 123
+warmup_iters: 1
+measure_iters: 5
+distributed: true
+dual_world_size: 2
+setups:
+  - single_die
+  - dual_die_moe_naive
+  - dual_die_moe_locality
+decode:
+  - concurrency: 16
+    context_len: 2048
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 0.0
+  - concurrency: 32
+    context_len: 2048
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 0.0
+  - concurrency: 16
+    context_len: 4096
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 0.0
+  - concurrency: 32
+    context_len: 4096
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 0.0
+  - concurrency: 16
+    context_len: 2048
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 2.5
+  - concurrency: 32
+    context_len: 2048
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 2.5
+  - concurrency: 16
+    context_len: 4096
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 2.5
+  - concurrency: 32
+    context_len: 4096
+    decode_steps: 16
+    model_dim: 256
+    hidden_dim: 512
+    num_experts: 8
+    top_k: 2
+    routing_skew: 2.5
+decode_slo_ms: [20, 40, 80, 120, 200, 300]
+capacity_slo_ms: 120.0
+continue_on_runtime_error: true
+record_runtime_failures: true
+enable_fabric_calibration: false
+fabric_warmup_iters: 0
+fabric_measure_iters: 1
+enforce_correctness: true
+correctness_abs_tol: 0.02
+correctness_rel_tol: 0.025

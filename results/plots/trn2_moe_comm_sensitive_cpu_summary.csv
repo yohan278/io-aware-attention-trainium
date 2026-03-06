@@ -1,0 +1,3 @@
+routing_skew,locality_vs_naive_throughput_ratio_median,locality_vs_naive_comm_ratio_median,locality_vs_naive_remote_delta_median,naive_vs_single_throughput_ratio_median,locality_vs_single_throughput_ratio_median,feasible_points_single,feasible_points_naive,feasible_points_locality
+0.0,0.9949986056684821,1.0251199257053365,-0.06250000000000003,1.206434080802715,1.2000253448753657,4.0,6.0,6.0
+2.5,0.9993565121498222,1.0108983538050738,-0.2714845,1.2377477773737844,1.221314958145566,4.0,6.0,6.0

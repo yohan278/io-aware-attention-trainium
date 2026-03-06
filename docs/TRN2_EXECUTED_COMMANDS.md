@@ -22,6 +22,12 @@ Optional service-scale day-1 sweep:
 RUN_SERVICE_DAY1=1 bash scripts/trn2_repro_inference_track.sh
 ```
 
+Optional MoE service-scale day-1 sweep:
+
+```bash
+RUN_MOE_DAY1=1 bash scripts/trn2_repro_inference_track.sh
+```
+
 ## Expanded Command List
 
 Environment check:
@@ -119,4 +125,46 @@ python scripts/simulate_mixed_traffic.py \
   --metrics-csv results/trn2-phase-inference-service-day1/<run_id>/metrics.csv \
   --out-dir results/plots \
   --prefix trn2_service_day1
+```
+
+MoE service study:
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/trn2_moe_service_day1.yaml \
+  --device trainium \
+  --distributed \
+  --output-dir results/trn2-moe-service-day1
+```
+
+MoE communication-sensitive variant (CPU distributed stress test):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/moe_comm_sensitive_cpu.yaml \
+  --device cpu \
+  --distributed \
+  --output-dir results/trn2-moe-comm-sensitive-cpu
+```
+
+MoE post-processing:
+
+```bash
+python scripts/plot_moe_service_study.py \
+  --metrics-csv results/trn2-moe-service-day1/<run_id>/metrics.csv \
+  --decode-slo-csv results/trn2-moe-service-day1/<run_id>/decode_slo_summary.csv \
+  --capacity-csv results/trn2-moe-service-day1/<run_id>/capacity_frontier.csv \
+  --out-dir results/plots \
+  --prefix trn2_moe_day1 \
+  --purge-stale
+```
+
+MoE summary table export:
+
+```bash
+python scripts/summarize_moe_service.py \
+  --metrics-csv results/trn2-moe-service-day1-cpu/<run_id>/metrics.csv \
+  --decode-slo-csv results/trn2-moe-service-day1-cpu/<run_id>/decode_slo_summary.csv \
+  --out-dir results/plots \
+  --prefix trn2_moe_day1_cpu
 ```
