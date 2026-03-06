@@ -21,7 +21,6 @@ from io_aware_attention.runtime.trainium import (
     DistributedContext,
     distributed_barrier,
     finalize_distributed_context,
-    gather_rank_strings,
     get_visible_core_mask,
     init_distributed_context,
     mark_step_if_needed,
@@ -273,6 +272,13 @@ def _all_gather_payload_bytes(local_message_bytes: int, world_size: int) -> floa
     return float(local_message_bytes) * float(world_size - 1)
 
 
+def _all_reduce_payload_bytes(local_message_bytes: int, world_size: int) -> float:
+    if world_size <= 1:
+        return 0.0
+    # Approximate effective bytes traversing links for all-reduce.
+    return float(local_message_bytes) * float(2 * (world_size - 1))
+
+
 def _collective_all_gather(
     local_tensor: torch.Tensor,
     *,
@@ -298,6 +304,33 @@ def _collective_all_gather(
     )
     metrics.add(op_name, payload, elapsed)
     return gathered
+
+
+def _collective_all_reduce_sum(
+    tensor: torch.Tensor,
+    *,
+    op_name: str,
+    metrics: CommMetrics,
+    ctx: DistributedContext,
+    device: Any,
+) -> torch.Tensor:
+    if not ctx.enabled:
+        return tensor
+    import torch.distributed as dist
+
+    out = tensor.clone()
+    start = time.perf_counter()
+    dist.all_reduce(out, op=dist.ReduceOp.SUM)
+    mark_step_if_needed(device)
+    sync_if_needed(device)
+    elapsed = time.perf_counter() - start
+
+    payload = _all_reduce_payload_bytes(
+        local_message_bytes=int(out.numel()) * int(out.element_size()),
+        world_size=ctx.world_size,
+    )
+    metrics.add(op_name, payload, elapsed)
+    return out
 
 
 def _gather_batch_tensor(local: torch.Tensor, ctx: DistributedContext, device: Any) -> torch.Tensor:
@@ -431,76 +464,63 @@ def _moe_step_dual(
         raise RuntimeError("Dual MoE step supports world_size=2 only")
 
     bsz, top_k = expert_idx_local.shape
-    token_idx = torch.arange(bsz, dtype=torch.int64, device=x_local.device).unsqueeze(1).expand(bsz, top_k)
-
-    flat_token = token_idx.reshape(-1)
-    flat_expert = expert_idx_local.reshape(-1)
-    flat_gate = gates_local.reshape(-1)
-    flat_x = x_local.index_select(0, flat_token)
-
-    owner = placement.index_select(0, flat_expert)
-    local_mask = owner == int(ctx.rank)
-    remote_mask = ~local_mask
-
-    y_local = torch.zeros((bsz, x_local.size(-1)), dtype=torch.float32, device=x_local.device)
-    # Compute local experts without dynamic slicing to keep graph shape stable across ranks.
-    local_weight = local_mask.to(dtype=torch.float32)
-    local_contrib = _apply_experts(flat_x, flat_expert, w1=w1, w2=w2)
-    local_contrib = local_contrib * flat_gate.to(dtype=torch.float32).unsqueeze(-1) * local_weight.unsqueeze(-1)
-    y_local.index_add_(0, flat_token, local_contrib)
 
     metrics = CommMetrics()
-
-    remote_weight = remote_mask.to(dtype=torch.float32)
-    send_x = flat_x.to(dtype=torch.float32) * remote_weight.unsqueeze(-1)
-    send_meta = torch.stack(
-        [
-            flat_token.to(dtype=torch.float32),
-            flat_expert.to(dtype=torch.float32),
-            (flat_gate.to(dtype=torch.float32) * remote_weight),
-            remote_weight,
-        ],
-        dim=1,
-    )
-
+    # Robust distributed formulation for Trainium:
+    # 1) all-gather token states + routing metadata across ranks,
+    # 2) each rank computes only contributions for experts it owns,
+    # 3) all-reduce partial outputs to exact full output, then slice local batch.
     gathered_x = _collective_all_gather(
-        send_x,
-        op_name="all_gather_dispatch_x",
+        x_local.to(dtype=torch.float32),
+        op_name="all_gather_tokens",
         metrics=metrics,
         ctx=ctx,
         device=device,
     )
-    gathered_meta = _collective_all_gather(
-        send_meta,
-        op_name="all_gather_dispatch_meta",
+    gathered_idx = _collective_all_gather(
+        expert_idx_local.to(dtype=torch.float32),
+        op_name="all_gather_router_idx",
         metrics=metrics,
         ctx=ctx,
         device=device,
     )
-
-    other_rank = 1 - int(ctx.rank)
-    recv_x = gathered_x[other_rank]
-    recv_meta = gathered_meta[other_rank]
-    recv_expert = recv_meta[:, 1].to(dtype=torch.int64)
-    recv_gate = recv_meta[:, 2].to(dtype=torch.float32)
-    recv_valid = recv_meta[:, 3].to(dtype=torch.float32)
-
-    response_send = _apply_experts(recv_x, recv_expert, w1=w1, w2=w2)
-    response_send = response_send * recv_gate.unsqueeze(-1) * recv_valid.unsqueeze(-1)
-
-    gathered_resp = _collective_all_gather(
-        response_send,
-        op_name="all_gather_dispatch_response",
+    gathered_gates = _collective_all_gather(
+        gates_local.to(dtype=torch.float32),
+        op_name="all_gather_router_gates",
         metrics=metrics,
         ctx=ctx,
         device=device,
     )
 
-    recv_resp_for_me = gathered_resp[other_rank]
-    send_token = send_meta[:, 0].to(dtype=torch.int64)
-    send_valid = send_meta[:, 3].to(dtype=torch.float32).unsqueeze(-1)
-    y_local.index_add_(0, send_token, recv_resp_for_me * send_valid)
+    x_full = torch.cat(gathered_x, dim=0)
+    idx_full = torch.cat(gathered_idx, dim=0).to(dtype=torch.int64)
+    gates_full = torch.cat(gathered_gates, dim=0).to(dtype=torch.float32)
 
+    global_bsz = int(x_full.size(0))
+    token_idx = torch.arange(global_bsz, dtype=torch.int64, device=x_local.device).unsqueeze(1).expand(global_bsz, top_k)
+    flat_token = token_idx.reshape(-1)
+    flat_expert = idx_full.reshape(-1)
+    flat_gate = gates_full.reshape(-1)
+    flat_x = x_full.index_select(0, flat_token)
+
+    owner = placement.index_select(0, flat_expert)
+    local_weight = (owner == int(ctx.rank)).to(dtype=torch.float32)
+
+    local_contrib = _apply_experts(flat_x, flat_expert, w1=w1, w2=w2)
+    local_contrib = local_contrib * flat_gate.unsqueeze(-1) * local_weight.unsqueeze(-1)
+
+    y_partial = torch.zeros((global_bsz, x_local.size(-1)), dtype=torch.float32, device=x_local.device)
+    y_partial.index_add_(0, flat_token, local_contrib)
+
+    y_full = _collective_all_reduce_sum(
+        y_partial,
+        op_name="all_reduce_output_sum",
+        metrics=metrics,
+        ctx=ctx,
+        device=device,
+    )
+
+    y_local = y_full[int(ctx.rank) * bsz : int(ctx.rank + 1) * bsz]
     return y_local.to(dtype=x_local.dtype), metrics, 0.0
 
 
@@ -932,15 +952,13 @@ def run_moe_service_study(
         records: list[dict[str, Any]] = []
         collectives_rows: list[dict[str, Any]] = []
         runtime_failures: list[dict[str, Any]] = []
+        abort_distributed_run = False
 
         local_mask = get_visible_core_mask()
         rank_masks_raw = [str(local_mask["raw"])]
         if ctx.enabled:
-            rank_masks_raw = gather_rank_strings(
-                local_value=str(local_mask["raw"]),
-                ctx=ctx,
-                device=device,
-            )
+            # Avoid an extra startup collective on unstable runtimes.
+            rank_masks_raw = [str(local_mask["raw"]) for _ in range(ctx.world_size)]
         rank_core_masks = [
             {
                 "rank": int(rank),
@@ -954,6 +972,8 @@ def run_moe_service_study(
         eps = 1e-3 if config.dtype == "bf16" else 1e-6
 
         for idx, shape in enumerate(config.decode_shapes):
+            if abort_distributed_run:
+                break
             seed = config.seed + 20000 + idx
             torch.manual_seed(seed)
             if torch.cuda.is_available():
@@ -1001,6 +1021,8 @@ def run_moe_service_study(
             )
 
             for setup in selected_setups:
+                if abort_distributed_run:
+                    break
                 try:
                     if setup == "single_die" and ctx.enabled and not ctx.is_primary:
                         continue
@@ -1188,9 +1210,42 @@ def run_moe_service_study(
                                     "error_message": str(exc),
                                 }
                             )
-                finally:
                     if ctx.enabled:
-                        distributed_barrier(ctx)
+                        abort_distributed_run = True
+                finally:
+                    if ctx.enabled and not abort_distributed_run:
+                        try:
+                            distributed_barrier(ctx)
+                        except Exception as barrier_exc:
+                            abort_distributed_run = True
+                            if ctx.is_primary and config.record_runtime_failures:
+                                runtime_failures.append(
+                                    {
+                                        "timestamp": _timestamp_utc(),
+                                        "phase": "decode",
+                                        "setup": setup,
+                                        "batch": int(shape.concurrency),
+                                        "context_len": int(shape.context_len),
+                                        "decode_steps": int(shape.decode_steps),
+                                        "model_dim": int(shape.model_dim),
+                                        "hidden_dim": int(shape.hidden_dim),
+                                        "num_experts": int(shape.num_experts),
+                                        "top_k": int(shape.top_k),
+                                        "routing_skew": float(shape.routing_skew),
+                                        "error_type": type(barrier_exc).__name__,
+                                        "error_message": f"Post-setup barrier failed: {barrier_exc}",
+                                    }
+                                )
+                            if ctx.is_primary:
+                                print(
+                                    "[moe-study] warning: distributed barrier failed; aborting remaining shapes/setups",
+                                    flush=True,
+                                )
+                if abort_distributed_run and ctx.is_primary:
+                    print(
+                        "[moe-study] stopping early due to distributed runtime failure; preserving partial results",
+                        flush=True,
+                    )
 
         if ctx.is_primary:
             _write_metrics(run_dir, records)

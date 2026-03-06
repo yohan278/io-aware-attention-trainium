@@ -82,6 +82,11 @@ python scripts/sync_results_s3.py --run-dir results/<run_id> --s3-uri s3://your-
 - Validation fails:
   - check env activation (`conda activate ioattn-trn2`)
   - check `conda/environment.trainium.yml` compatibility with host runtime
+- Runtime flaps with `NC4 init failed` / `NRT_FAILURE`:
+  - test per-core health (`NEURON_RT_VISIBLE_CORES=0|1|2|3`) with a tiny XLA op
+  - avoid bad cores by pinning two healthy cores, for example:
+    - `NEURON_RT_VISIBLE_CORES=2,3 torchrun --nproc_per_node=2 ...`
+  - for unstable nodes, disable fabric calibration in run config for MoE sweeps
 - SSH/port-forward issues:
   - check security group ingress
   - confirm forwarded port flags are present

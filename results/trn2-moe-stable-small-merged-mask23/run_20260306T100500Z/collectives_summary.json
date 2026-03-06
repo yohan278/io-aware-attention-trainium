@@ -1,0 +1,932 @@
+{
+  "rows": [
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:01:33Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.387868308321074e-05,
+          "time_ms_p50": 7.823863999647074,
+          "time_ms_total": 30.225495999502527
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.789792777732564e-05,
+          "time_ms_p50": 6.859759000349186,
+          "time_ms_total": 27.019947001235778
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0018593019177470488,
+          "time_ms_p50": 9.462816500104054,
+          "time_ms_total": 140.99055000042426
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.021429149341887194,
+          "time_ms_p50": 12.223217499695238,
+          "time_ms_total": 48.932226999340855
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:01:34Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:01:40Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.047361365413186e-05,
+          "time_ms_p50": 7.175302499604186,
+          "time_ms_total": 29.060521999781486
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 6.945893860749843e-05,
+          "time_ms_p50": 7.16332850015533,
+          "time_ms_total": 29.48504600067281
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 9.951931992702048e-05,
+          "time_ms_p50": 60.61085200030902,
+          "time_ms_total": 5268.203203000894
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0344283683116674,
+          "time_ms_p50": 15.13411249982255,
+          "time_ms_total": 60.9134879996418
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:20Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:20Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.350771524890496e-05,
+          "time_ms_p50": 7.661776999952963,
+          "time_ms_total": 30.560126000636956
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.726346840576389e-05,
+          "time_ms_p50": 6.86399450000863,
+          "time_ms_total": 27.479997000000367
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.008434757866373549,
+          "time_ms_p50": 7.867605500450736,
+          "time_ms_total": 31.079019001253982
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.021950045568293237,
+          "time_ms_p50": 12.002664500187166,
+          "time_ms_total": 47.77101700028652
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:24Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:24Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.349894905080129e-05,
+          "time_ms_p50": 6.967921999944338,
+          "time_ms_total": 27.864344000136043
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.230161239215987e-05,
+          "time_ms_p50": 7.058623499915484,
+          "time_ms_total": 28.325785998958963
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0171262702120262,
+          "time_ms_p50": 7.591089500238013,
+          "time_ms_total": 30.613087000801897
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0356648556060948,
+          "time_ms_p50": 14.54082399982326,
+          "time_ms_total": 58.80163999995602
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:24Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:27Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.1434109410055876e-05,
+          "time_ms_p50": 8.145014999854538,
+          "time_ms_total": 32.57607799992002
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.249790136237614e-05,
+          "time_ms_p50": 7.811125999978685,
+          "time_ms_total": 31.50972699995691
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.007477616555276143,
+          "time_ms_p50": 8.667953499980285,
+          "time_ms_total": 35.05716000040593
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.020897506048953098,
+          "time_ms_p50": 12.628413500010538,
+          "time_ms_total": 50.17708800005494
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:30Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:32Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 6.546422397531484e-05,
+          "time_ms_p50": 7.84987250017366,
+          "time_ms_total": 31.28426300099818
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 6.928358807681855e-05,
+          "time_ms_p50": 7.378507000225909,
+          "time_ms_total": 29.559670000480764
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.016518302575309986,
+          "time_ms_p50": 7.846751500096616,
+          "time_ms_total": 31.739822999952594
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.03412700894990795,
+          "time_ms_p50": 15.580923999891638,
+          "time_ms_total": 61.45138599981692
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:35Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:35Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.39543463926544e-05,
+          "time_ms_p50": 7.540437499756081,
+          "time_ms_total": 30.158141999208965
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.537218150090024e-05,
+          "time_ms_p50": 7.321291499920335,
+          "time_ms_total": 28.949302998853454
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.008188515786569074,
+          "time_ms_p50": 8.012248499994712,
+          "time_ms_total": 32.0136159998583
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.022534453348035683,
+          "time_ms_p50": 11.588542500248877,
+          "time_ms_total": 46.5321250001125
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:35Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {},
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "single_die",
+      "timestamp": "2026-03-06T10:02:35Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.017412331340778e-05,
+          "time_ms_p50": 7.307280499844637,
+          "time_ms_total": 29.184546999658778
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.302721333503173e-05,
+          "time_ms_p50": 6.9770210000115185,
+          "time_ms_total": 28.04433999972389
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.01696301392747298,
+          "time_ms_p50": 7.683907499767884,
+          "time_ms_total": 30.907714999329983
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.035753020825493004,
+          "time_ms_p50": 14.67300300032548,
+          "time_ms_total": 58.6566380009117
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_naive",
+      "timestamp": "2026-03-06T10:02:36Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.5964950329221935e-05,
+          "time_ms_p50": 7.267442500051402,
+          "time_ms_total": 28.472165000266614
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.8654131102015724e-05,
+          "time_ms_p50": 6.6328484999758075,
+          "time_ms_total": 26.491346999819143
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.001822760679598515,
+          "time_ms_p50": 10.023947500371833,
+          "time_ms_total": 143.81701500042254
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.022300897934711857,
+          "time_ms_p50": 11.708566000038445,
+          "time_ms_total": 47.01945200008595
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:09Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.245513628080103e-05,
+          "time_ms_p50": 7.162866499811571,
+          "time_ms_total": 28.265766999084008
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.194784202884184e-05,
+          "time_ms_p50": 7.155580500352698,
+          "time_ms_total": 28.46506500054602
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.0038215385354715874,
+          "time_ms_p50": 8.341906000055133,
+          "time_ms_total": 137.19291199959116
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.036380813764092294,
+          "time_ms_p50": 14.470138999968185,
+          "time_ms_total": 57.64445000045271
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:12Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.40187445948548e-05,
+          "time_ms_p50": 7.301732499740865,
+          "time_ms_total": 30.10105199928148
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.811610694641683e-05,
+          "time_ms_p50": 6.6726700001709105,
+          "time_ms_total": 26.865283000688578
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.008736117910932827,
+          "time_ms_p50": 7.545691000018451,
+          "time_ms_total": 30.00692099999469
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.022533129411725847,
+          "time_ms_p50": 11.646750500062808,
+          "time_ms_total": 46.53485899984844
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:13Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.151420539977167e-05,
+          "time_ms_p50": 7.198176500082809,
+          "time_ms_total": 28.63766699988446
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.439328606294962e-05,
+          "time_ms_p50": 6.849723500067739,
+          "time_ms_total": 27.529366000408118
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.017394955108610756,
+          "time_ms_p50": 7.527169000127287,
+          "time_ms_total": 30.14023300011104
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.03597840230836432,
+          "time_ms_p50": 14.548283999602063,
+          "time_ms_total": 58.28919199984739
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 0.0,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:13Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.432561743413464e-05,
+          "time_ms_p50": 7.367013999783012,
+          "time_ms_total": 29.831946998911008
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.721159965494508e-05,
+          "time_ms_p50": 6.832807999671786,
+          "time_ms_total": 27.51830100010011
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.008541799780831884,
+          "time_ms_p50": 7.715685999869493,
+          "time_ms_total": 30.68955099934101
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.022005541930699847,
+          "time_ms_p50": 11.856874999807587,
+          "time_ms_total": 47.650541999928464
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:13Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 2048,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.272147773513786e-05,
+          "time_ms_p50": 7.074354999872412,
+          "time_ms_total": 28.162243999759085
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.3853445987245e-05,
+          "time_ms_p50": 6.846521499824121,
+          "time_ms_total": 27.730594999638924
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.017608818219959757,
+          "time_ms_p50": 7.378098499771113,
+          "time_ms_total": 29.77417299962326
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.03535641913775214,
+          "time_ms_p50": 14.894559499794013,
+          "time_ms_total": 59.31460399960997
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:14Z",
+      "top_k": 2
+    },
+    {
+      "batch": 8,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.447091504715879e-05,
+          "time_ms_p50": 7.428391500297948,
+          "time_ms_total": 29.706203000387177
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 256.0,
+          "bytes_total": 1024.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 3.796236980005169e-05,
+          "time_ms_p50": 6.747021000137465,
+          "time_ms_total": 26.97408000062751
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 65536.0,
+          "bytes_total": 262144.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.008786702122161675,
+          "time_ms_p50": 7.457393999857231,
+          "time_ms_total": 29.83417400014332
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 262144.0,
+          "bytes_total": 1048576.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.022889580307289797,
+          "time_ms_p50": 11.347183499879065,
+          "time_ms_total": 45.810188999666934
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:14Z",
+      "top_k": 2
+    },
+    {
+      "batch": 16,
+      "context_len": 4096,
+      "decode_steps": 8,
+      "hidden_dim": 2048,
+      "model_dim": 512,
+      "num_experts": 8,
+      "ops": {
+        "all_gather_router_gates": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.149654700746246e-05,
+          "time_ms_p50": 7.286173000125018,
+          "time_ms_total": 28.644740001027458
+        },
+        "all_gather_router_idx": {
+          "bytes_p50": 512.0,
+          "bytes_total": 2048.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 7.268192653574617e-05,
+          "time_ms_p50": 7.018886999730967,
+          "time_ms_total": 28.1775689998085
+        },
+        "all_gather_tokens": {
+          "bytes_p50": 131072.0,
+          "bytes_total": 524288.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.017770093986379038,
+          "time_ms_p50": 7.410301499817251,
+          "time_ms_total": 29.503951999458877
+        },
+        "all_reduce_output_sum": {
+          "bytes_p50": 524288.0,
+          "bytes_total": 2097152.0,
+          "count_p50": 8.0,
+          "count_total": 32.0,
+          "effective_gbps_p50": 0.03569042149594383,
+          "time_ms_p50": 14.677227999982279,
+          "time_ms_total": 58.75951899975007
+        }
+      },
+      "phase": "decode",
+      "routing_skew": 1.8,
+      "setup": "dual_die_moe_locality",
+      "timestamp": "2026-03-06T10:03:14Z",
+      "top_k": 2
+    }
+  ]
+}

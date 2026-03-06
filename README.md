@@ -106,6 +106,15 @@ torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
   --distributed
 ```
 
+Trainium-stable MoE sweep (recommended on flaky hosts):
+
+```bash
+NEURON_RT_VISIBLE_CORES=2,3 torchrun --nproc_per_node=2 scripts/run_moe_service_study.py \
+  --config configs/experiments/trn2_moe_service_trainium_focus.yaml \
+  --device trainium \
+  --distributed
+```
+
 MoE communication-sensitive validation (smaller expert MLP to stress dispatch/collective effects):
 
 ```bash

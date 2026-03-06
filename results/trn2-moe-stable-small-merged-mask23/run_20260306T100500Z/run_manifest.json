@@ -1,0 +1,8 @@
+{
+  "variant": "moe_service_study_merged",
+  "source_runs": [
+    "results/trn2-moe-stable-small-naive-mask23/run_20260306T100132Z",
+    "results/trn2-moe-stable-small-locality-mask23/run_20260306T100307Z"
+  ],
+  "note": "Merged trainium runs with isolated setup sweeps on core mask 2,3 to avoid runtime cross-setup instability."
+}

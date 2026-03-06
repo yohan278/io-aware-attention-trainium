@@ -1,0 +1,13 @@
+setup,context_len,num_experts,top_k,routing_skew,slo_ms,max_tested_concurrency,max_feasible_concurrency,best_throughput_tokens_per_s,best_concurrency,best_latency_ms_p90,has_feasible
+dual_die_moe_locality,2048,8,2,0.0,250.0,16,16,2984.815126,16,126.623527,True
+dual_die_moe_locality,2048,8,2,1.8,250.0,16,16,2984.223205,16,43.623815,True
+dual_die_moe_locality,4096,8,2,0.0,250.0,16,16,3009.105577,16,43.005007,True
+dual_die_moe_locality,4096,8,2,1.8,250.0,16,16,2975.082879,16,43.774743,True
+dual_die_moe_naive,2048,8,2,0.0,250.0,16,8,1513.254913,8,123.481988,True
+dual_die_moe_naive,2048,8,2,1.8,250.0,16,16,2745.417686,16,47.566887,True
+dual_die_moe_naive,4096,8,2,0.0,250.0,16,16,2979.926401,16,43.834437,True
+dual_die_moe_naive,4096,8,2,1.8,250.0,16,16,2952.259995,16,43.79769,True
+single_die,2048,8,2,0.0,250.0,16,8,27003.894679,8,16.430905,True
+single_die,2048,8,2,1.8,250.0,16,16,43363.907712,16,3.014867,True
+single_die,4096,8,2,0.0,250.0,16,16,43279.116661,16,3.040132,True
+single_die,4096,8,2,1.8,250.0,16,16,42110.27068,16,3.215813,True
