@@ -87,6 +87,15 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
+Service-scale day-1 matrix (throughput/capacity headline):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_service_day1.yaml \
+  --device trainium \
+  --distributed
+```
+
 Plot results:
 
 ```bash
@@ -104,6 +113,25 @@ python scripts/plot_inference_track.py \
   --out-dir results/plots \
   --prefix inference_story \
   --purge-stale
+```
+
+Capacity frontier plots:
+
+```bash
+python scripts/plot_capacity_frontier.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --capacity-csv <run_dir>/capacity_frontier.csv \
+  --out-dir results/plots \
+  --prefix trn2_service_day1
+```
+
+Mixed-traffic service simulation:
+
+```bash
+python scripts/simulate_mixed_traffic.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --out-dir results/plots \
+  --prefix trn2_service_day1
 ```
 
 One-command Trn2 reproduction script:
@@ -131,6 +159,15 @@ Generated artifacts are intentionally not committed. Each run writes a timestamp
 - `run_manifest.json`
 - optional fabric and collective summaries
 - phase-study derived summaries (`break_even_summary.*`, `decode_slo_summary.*`)
+- service-capacity artifacts (`capacity_frontier.*`)
+- runtime skip logs for fault-tolerant sweeps (`runtime_failures.jsonl`, when enabled and needed)
+
+### Interpretation Note
+
+For this project, the primary claim is **throughput/capacity-first dual-die value**:
+
+- `dual_die_request_sharded` is expected to help decode service throughput/capacity.
+- `dual_die_tensor_optimized` remains an explicit communication-bound counterexample.
 
 ## Testing
 

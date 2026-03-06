@@ -16,6 +16,12 @@ Optional full (heavier) phase sweep:
 RUN_FULL_PHASE=1 bash scripts/trn2_repro_inference_track.sh
 ```
 
+Optional service-scale day-1 sweep:
+
+```bash
+RUN_SERVICE_DAY1=1 bash scripts/trn2_repro_inference_track.sh
+```
+
 ## Expanded Command List
 
 Environment check:
@@ -88,4 +94,29 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --device trainium \
   --distributed \
   --output-dir results/trn2-phase-inference-full
+```
+
+Phase study (service-scale day-1):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_service_day1.yaml \
+  --device trainium \
+  --distributed \
+  --output-dir results/trn2-phase-inference-service-day1
+```
+
+Service-scale post-processing:
+
+```bash
+python scripts/plot_capacity_frontier.py \
+  --metrics-csv results/trn2-phase-inference-service-day1/<run_id>/metrics.csv \
+  --capacity-csv results/trn2-phase-inference-service-day1/<run_id>/capacity_frontier.csv \
+  --out-dir results/plots \
+  --prefix trn2_service_day1
+
+python scripts/simulate_mixed_traffic.py \
+  --metrics-csv results/trn2-phase-inference-service-day1/<run_id>/metrics.csv \
+  --out-dir results/plots \
+  --prefix trn2_service_day1
 ```

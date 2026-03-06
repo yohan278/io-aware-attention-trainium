@@ -173,6 +173,9 @@ class PhaseStudyConfig:
     prefill_shapes: list[PrefillShape]
     decode_shapes: list[DecodeShape]
     decode_slo_ms: list[float]
+    continue_on_runtime_error: bool
+    capacity_slo_ms: float
+    record_runtime_failures: bool
     enable_fabric_calibration: bool
     fabric_message_sizes: list[int]
     fabric_warmup_iters: int
@@ -204,6 +207,9 @@ class PhaseStudyConfig:
             prefill_shapes=prefill_shapes,
             decode_shapes=decode_shapes,
             decode_slo_ms=[float(x) for x in raw.get("decode_slo_ms", [2.0, 4.0, 8.0, 16.0])],
+            continue_on_runtime_error=bool(raw.get("continue_on_runtime_error", True)),
+            capacity_slo_ms=float(raw.get("capacity_slo_ms", 250.0)),
+            record_runtime_failures=bool(raw.get("record_runtime_failures", True)),
             enable_fabric_calibration=bool(raw.get("enable_fabric_calibration", True)),
             fabric_message_sizes=[
                 int(item) for item in raw.get("fabric_message_sizes", ks.DEFAULT_FABRIC_MESSAGE_SIZES)
@@ -230,6 +236,8 @@ class PhaseStudyConfig:
             raise ValueError(f"Unsupported dtype: {self.dtype}")
         if self.warmup_iters < 0 or self.measure_iters < 1:
             raise ValueError("warmup/measure iters must be >= 0 / >= 1")
+        if self.capacity_slo_ms <= 0:
+            raise ValueError("capacity_slo_ms must be > 0")
         if self.fabric_warmup_iters < 0 or self.fabric_measure_iters < 1:
             raise ValueError("fabric calibration warmup/measure iters must be >= 0 / >= 1")
         if self.tensor_attention_naive_threshold < 0:
@@ -1262,6 +1270,92 @@ def _write_break_even_summary(run_dir: Path, rows: list[dict[str, Any]]) -> tupl
     return csv_path, md_path
 
 
+def _build_capacity_frontier(records: list[dict[str, Any]], capacity_slo_ms: float) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    decode_records = [r for r in records if r["phase"] == "decode"]
+    keys = sorted({(str(r["setup"]), int(r["context_len"])) for r in decode_records})
+
+    for setup, context_len in keys:
+        subset = [r for r in decode_records if r["setup"] == setup and int(r["context_len"]) == context_len]
+        feasible = [r for r in subset if float(r["latency_ms_p90"]) <= float(capacity_slo_ms)]
+        max_tested = max((int(r["batch"]) for r in subset), default=0)
+        max_feasible = max((int(r["batch"]) for r in feasible), default=0)
+        best = max(feasible, key=lambda row: float(row["throughput_tokens_per_s"])) if feasible else None
+
+        rows.append(
+            {
+                "setup": setup,
+                "context_len": int(context_len),
+                "slo_ms": float(capacity_slo_ms),
+                "max_tested_concurrency": int(max_tested),
+                "max_feasible_concurrency": int(max_feasible),
+                "best_throughput_tokens_per_s": (
+                    float(best["throughput_tokens_per_s"]) if best is not None else 0.0
+                ),
+                "best_concurrency": int(best["batch"]) if best is not None else 0,
+                "best_latency_ms_p90": float(best["latency_ms_p90"]) if best is not None else 0.0,
+                "feasible_points": int(len(feasible)),
+                "total_points": int(len(subset)),
+                "has_feasible": bool(best is not None),
+            }
+        )
+    return rows
+
+
+def _write_capacity_frontier(run_dir: Path, rows: list[dict[str, Any]]) -> tuple[Path, Path]:
+    csv_path = run_dir / "capacity_frontier.csv"
+    md_path = run_dir / "capacity_frontier.md"
+
+    if not rows:
+        csv_path.write_text("", encoding="utf-8")
+        md_path.write_text("# Capacity Frontier\n\nNo decode records found.\n", encoding="utf-8")
+        return csv_path, md_path
+
+    fields = [
+        "setup",
+        "context_len",
+        "slo_ms",
+        "max_tested_concurrency",
+        "max_feasible_concurrency",
+        "best_throughput_tokens_per_s",
+        "best_concurrency",
+        "best_latency_ms_p90",
+        "feasible_points",
+        "total_points",
+        "has_feasible",
+    ]
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+    lines = [
+        "# Capacity Frontier",
+        "",
+        "| Setup | Context | SLO (ms) | Max tested conc | Max feasible conc | Best throughput (tokens/s) | Best conc | Best p90 latency (ms) | Feasible points | Total points | Has feasible |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+    ]
+    for row in rows:
+        lines.append(
+            f"| {row['setup']} | {int(row['context_len'])} | {float(row['slo_ms']):.2f} | "
+            f"{int(row['max_tested_concurrency'])} | {int(row['max_feasible_concurrency'])} | "
+            f"{float(row['best_throughput_tokens_per_s']):.2f} | {int(row['best_concurrency'])} | "
+            f"{float(row['best_latency_ms_p90']):.4f} | {int(row['feasible_points'])} | "
+            f"{int(row['total_points'])} | {bool(row['has_feasible'])} |"
+        )
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return csv_path, md_path
+
+
+def _write_runtime_failures(run_dir: Path, rows: list[dict[str, Any]]) -> Path:
+    out_path = run_dir / "runtime_failures.jsonl"
+    with out_path.open("w", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, sort_keys=True) + "\n")
+    return out_path
+
+
 def _validate_correctness(
     *,
     setup: SetupName,
@@ -1347,6 +1441,7 @@ def run_phase_study(
         records: list[dict[str, Any]] = []
         kernel_phase_records: list[dict[str, Any]] = []
         collectives_rows: list[dict[str, Any]] = []
+        runtime_failures: list[dict[str, Any]] = []
         local_mask = get_visible_core_mask()
         rank_masks_raw = [str(local_mask["raw"])]
         if ctx.enabled:
@@ -1399,163 +1494,192 @@ def run_phase_study(
                 continue
 
             for setup in shape_setups:
-                if setup == "single_die" and ctx.enabled and not ctx.is_primary:
-                    distributed_barrier(ctx)
-                    continue
+                try:
+                    if setup == "single_die" and ctx.enabled and not ctx.is_primary:
+                        continue
 
-                if setup == "single_die":
-                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
-                        return _prefill_step_single(x_global, weights, num_heads=shape.num_heads)
-                    tokens = shape.batch * shape.seq_len
-                    kv_cache_bytes = 0.0
-                elif setup == "dual_die_tensor_optimized":
-                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
-                        return _prefill_step_tensor(
-                            x_global,
-                            weights,
-                            num_heads=shape.num_heads,
-                            attention_optimized=tensor_attention_optimized_prefill,
-                            attention_pipelined=config.tensor_attention_pipelined_prefill,
-                            attention_tile_q=config.tensor_attention_tile_q,
-                            attention_tile_k=config.tensor_attention_tile_k,
-                            attention_reduce_group_k=config.tensor_attention_reduce_group_k,
-                            dtype_bytes=dtype_bytes,
-                            ctx=ctx,
-                            device=device,
-                        )
-                    tokens = shape.batch * shape.seq_len
-                    kv_cache_bytes = 0.0
-                else:
-                    local_batch = shape.batch // ctx.world_size
-                    b_start = ctx.rank * local_batch
-                    b_end = b_start + local_batch
-                    x_local = x_global[b_start:b_end]
-                    def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
-                        return _prefill_step_request_sharded(x_local, weights, num_heads=shape.num_heads)
-                    tokens = shape.batch * shape.seq_len
-                    kv_cache_bytes = 0.0
+                    if setup == "single_die":
+                        def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                            return _prefill_step_single(x_global, weights, num_heads=shape.num_heads)
+                        tokens = shape.batch * shape.seq_len
+                        kv_cache_bytes = 0.0
+                    elif setup == "dual_die_tensor_optimized":
+                        def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                            return _prefill_step_tensor(
+                                x_global,
+                                weights,
+                                num_heads=shape.num_heads,
+                                attention_optimized=tensor_attention_optimized_prefill,
+                                attention_pipelined=config.tensor_attention_pipelined_prefill,
+                                attention_tile_q=config.tensor_attention_tile_q,
+                                attention_tile_k=config.tensor_attention_tile_k,
+                                attention_reduce_group_k=config.tensor_attention_reduce_group_k,
+                                dtype_bytes=dtype_bytes,
+                                ctx=ctx,
+                                device=device,
+                            )
+                        tokens = shape.batch * shape.seq_len
+                        kv_cache_bytes = 0.0
+                    else:
+                        local_batch = shape.batch // ctx.world_size
+                        b_start = ctx.rank * local_batch
+                        b_end = b_start + local_batch
+                        x_local = x_global[b_start:b_end]
 
-                if ctx.is_primary:
-                    attention_mode = "single_rank"
-                    if setup == "dual_die_tensor_optimized":
-                        attention_mode = (
-                            "optimized" if tensor_attention_optimized_prefill else "naive_fallback"
+                        def runner() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
+                            return _prefill_step_request_sharded(x_local, weights, num_heads=shape.num_heads)
+
+                        tokens = shape.batch * shape.seq_len
+                        kv_cache_bytes = 0.0
+
+                    if ctx.is_primary:
+                        attention_mode = "single_rank"
+                        if setup == "dual_die_tensor_optimized":
+                            attention_mode = (
+                                "optimized" if tensor_attention_optimized_prefill else "naive_fallback"
+                            )
+                        elif setup == "dual_die_request_sharded":
+                            attention_mode = "request_sharded"
+                        print(
+                            "[phase-study] prefill "
+                            f"setup={setup} batch={shape.batch} seq_len={shape.seq_len} "
+                            f"model_dim={shape.model_dim} num_heads={shape.num_heads} "
+                            f"attention={attention_mode}",
+                            flush=True,
                         )
-                    elif setup == "dual_die_request_sharded":
-                        attention_mode = "request_sharded"
-                    print(
-                        "[phase-study] prefill "
-                        f"setup={setup} batch={shape.batch} seq_len={shape.seq_len} "
-                        f"model_dim={shape.model_dim} num_heads={shape.num_heads} "
-                        f"attention={attention_mode}",
-                        flush=True,
+
+                    (
+                        out,
+                        total_s,
+                        compute_s,
+                        comm_s,
+                        overlap_pct,
+                        comm_bytes,
+                        link_gbps,
+                        kernel_series,
+                        collective_samples,
+                    ) = _bench_runner(
+                        runner,
+                        warmup_iters=config.warmup_iters,
+                        measure_iters=config.measure_iters,
+                        device=device,
                     )
 
-                (
-                    out,
-                    total_s,
-                    compute_s,
-                    comm_s,
-                    overlap_pct,
-                    comm_bytes,
-                    link_gbps,
-                    kernel_series,
-                    collective_samples,
-                ) = _bench_runner(
-                    runner,
-                    warmup_iters=config.warmup_iters,
-                    measure_iters=config.measure_iters,
-                    device=device,
-                )
+                    if setup == "dual_die_request_sharded":
+                        out_full = _gather_batch_tensor(out, ctx=ctx, device=device)
+                    else:
+                        out_full = out
 
-                if setup == "dual_die_request_sharded":
-                    out_full = _gather_batch_tensor(out, ctx=ctx, device=device)
-                else:
-                    out_full = out
-
-                max_abs, max_rel = _validate_correctness(
-                    setup=setup,
-                    reference=reference_out_full,
-                    candidate=out_full,
-                    enforce=config.enforce_correctness,
-                    abs_tol=config.correctness_abs_tol,
-                    rel_tol=config.correctness_rel_tol,
-                    eps=eps,
-                )
-
-                if not ctx.is_primary:
-                    distributed_barrier(ctx)
-                    continue
-
-                p50_ms = _percentile_ms(total_s, 50)
-                p90_ms = _percentile_ms(total_s, 90)
-                throughput = tokens / (p50_ms / 1000.0) if p50_ms > 0 else 0.0
-                achieved_link_gbps_p50 = _percentile(link_gbps, 50)
-                fabric_peak = float(fabric_summary.get("peak_gbps", 0.0))
-                link_util_pct = (achieved_link_gbps_p50 / fabric_peak * 100.0) if fabric_peak > 0 else 0.0
-
-                record = {
-                    "timestamp": _timestamp_utc(),
-                    "phase": "prefill",
-                    "setup": setup,
-                    "device": device_name,
-                    "dtype": config.dtype,
-                    "batch": shape.batch,
-                    "seq_len": shape.seq_len,
-                    "context_len": 0,
-                    "decode_steps": 0,
-                    "model_dim": shape.model_dim,
-                    "num_heads": shape.num_heads,
-                    "latency_ms_p50": round(float(p50_ms), 6),
-                    "latency_ms_p90": round(float(p90_ms), 6),
-                    "compute_ms_p50": round(float(_percentile_ms(compute_s, 50)), 6),
-                    "communication_ms_p50": round(float(_percentile_ms(comm_s, 50)), 6),
-                    "overlap_pct_p50": round(float(_percentile(overlap_pct, 50)), 6),
-                    "throughput_tokens_per_s": round(float(throughput), 6),
-                    "communication_bytes": round(float(np.mean(comm_bytes)), 2),
-                    "achieved_link_gbps_p50": round(float(achieved_link_gbps_p50), 6),
-                    "link_utilization_pct_p50": round(float(link_util_pct), 6),
-                    "fabric_peak_gbps": round(float(fabric_peak), 6),
-                    "kv_cache_bytes_per_rank": round(float(kv_cache_bytes), 2),
-                    "max_abs_err": round(float(max_abs), 8),
-                    "max_rel_err": round(float(max_rel), 8),
-                }
-                missing = [col for col in REQUIRED_COLUMNS if col not in record]
-                if missing:
-                    raise RuntimeError(f"Missing metrics columns: {missing}")
-                records.append(record)
-                kernel_phase_records.extend(
-                    _build_kernel_phase_rows(
-                        phase="prefill",
+                    max_abs, max_rel = _validate_correctness(
                         setup=setup,
-                        device_name=device_name,
-                        dtype_name=config.dtype,
-                        batch=shape.batch,
-                        seq_len=shape.seq_len,
-                        context_len=0,
-                        decode_steps=0,
-                        model_dim=shape.model_dim,
-                        num_heads=shape.num_heads,
-                        fabric_peak_gbps=fabric_peak,
-                        kernel_series=kernel_series,
+                        reference=reference_out_full,
+                        candidate=out_full,
+                        enforce=config.enforce_correctness,
+                        abs_tol=config.correctness_abs_tol,
+                        rel_tol=config.correctness_rel_tol,
+                        eps=eps,
                     )
-                )
-                collectives_rows.append(
-                    {
+
+                    if not ctx.is_primary:
+                        continue
+
+                    p50_ms = _percentile_ms(total_s, 50)
+                    p90_ms = _percentile_ms(total_s, 90)
+                    throughput = tokens / (p50_ms / 1000.0) if p50_ms > 0 else 0.0
+                    achieved_link_gbps_p50 = _percentile(link_gbps, 50)
+                    fabric_peak = float(fabric_summary.get("peak_gbps", 0.0))
+                    link_util_pct = (achieved_link_gbps_p50 / fabric_peak * 100.0) if fabric_peak > 0 else 0.0
+
+                    record = {
                         "timestamp": _timestamp_utc(),
                         "phase": "prefill",
                         "setup": setup,
+                        "device": device_name,
+                        "dtype": config.dtype,
                         "batch": shape.batch,
                         "seq_len": shape.seq_len,
                         "context_len": 0,
                         "decode_steps": 0,
                         "model_dim": shape.model_dim,
                         "num_heads": shape.num_heads,
-                        "ops": _summarize_collective_samples(collective_samples),
+                        "latency_ms_p50": round(float(p50_ms), 6),
+                        "latency_ms_p90": round(float(p90_ms), 6),
+                        "compute_ms_p50": round(float(_percentile_ms(compute_s, 50)), 6),
+                        "communication_ms_p50": round(float(_percentile_ms(comm_s, 50)), 6),
+                        "overlap_pct_p50": round(float(_percentile(overlap_pct, 50)), 6),
+                        "throughput_tokens_per_s": round(float(throughput), 6),
+                        "communication_bytes": round(float(np.mean(comm_bytes)), 2),
+                        "achieved_link_gbps_p50": round(float(achieved_link_gbps_p50), 6),
+                        "link_utilization_pct_p50": round(float(link_util_pct), 6),
+                        "fabric_peak_gbps": round(float(fabric_peak), 6),
+                        "kv_cache_bytes_per_rank": round(float(kv_cache_bytes), 2),
+                        "max_abs_err": round(float(max_abs), 8),
+                        "max_rel_err": round(float(max_rel), 8),
                     }
-                )
-                if ctx.enabled:
-                    distributed_barrier(ctx)
+                    missing = [col for col in REQUIRED_COLUMNS if col not in record]
+                    if missing:
+                        raise RuntimeError(f"Missing metrics columns: {missing}")
+                    records.append(record)
+                    kernel_phase_records.extend(
+                        _build_kernel_phase_rows(
+                            phase="prefill",
+                            setup=setup,
+                            device_name=device_name,
+                            dtype_name=config.dtype,
+                            batch=shape.batch,
+                            seq_len=shape.seq_len,
+                            context_len=0,
+                            decode_steps=0,
+                            model_dim=shape.model_dim,
+                            num_heads=shape.num_heads,
+                            fabric_peak_gbps=fabric_peak,
+                            kernel_series=kernel_series,
+                        )
+                    )
+                    collectives_rows.append(
+                        {
+                            "timestamp": _timestamp_utc(),
+                            "phase": "prefill",
+                            "setup": setup,
+                            "batch": shape.batch,
+                            "seq_len": shape.seq_len,
+                            "context_len": 0,
+                            "decode_steps": 0,
+                            "model_dim": shape.model_dim,
+                            "num_heads": shape.num_heads,
+                            "ops": _summarize_collective_samples(collective_samples),
+                        }
+                    )
+                except Exception as exc:
+                    if not config.continue_on_runtime_error:
+                        raise
+                    if ctx.is_primary:
+                        print(
+                            "[phase-study] warning: prefill setup failed and will be skipped: "
+                            f"setup={setup} batch={shape.batch} seq_len={shape.seq_len} "
+                            f"model_dim={shape.model_dim} num_heads={shape.num_heads} "
+                            f"error={type(exc).__name__}: {exc}",
+                            flush=True,
+                        )
+                        if config.record_runtime_failures:
+                            runtime_failures.append(
+                                {
+                                    "timestamp": _timestamp_utc(),
+                                    "phase": "prefill",
+                                    "setup": setup,
+                                    "batch": int(shape.batch),
+                                    "seq_len": int(shape.seq_len),
+                                    "context_len": 0,
+                                    "decode_steps": 0,
+                                    "model_dim": int(shape.model_dim),
+                                    "num_heads": int(shape.num_heads),
+                                    "error_type": type(exc).__name__,
+                                    "error_message": str(exc),
+                                }
+                            )
+                finally:
+                    if ctx.enabled:
+                        distributed_barrier(ctx)
 
         # Decode phase
         for idx, shape in enumerate(config.decode_shapes):
@@ -1620,230 +1744,261 @@ def run_phase_study(
                 continue
 
             for setup in shape_setups:
-                if setup == "single_die" and ctx.enabled and not ctx.is_primary:
-                    distributed_barrier(ctx)
-                    continue
+                try:
+                    if setup == "single_die" and ctx.enabled and not ctx.is_primary:
+                        continue
 
-                if setup == "single_die":
-                    local_x_steps = x_steps_global
-                    k_cache_init = k_cache_global.clone()
-                    v_cache_init = v_cache_global.clone()
+                    if setup == "single_die":
+                        local_x_steps = x_steps_global
+                        k_cache_init = k_cache_global.clone()
+                        v_cache_init = v_cache_global.clone()
 
-                    def decode_runner_single() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
-                        k_cache = k_cache_init.clone()
-                        v_cache = v_cache_init.clone()
-                        out = torch.zeros((shape.concurrency, 1, shape.model_dim), dtype=dtype, device=device)
-                        comm_total = ks.CommMetrics()
-                        kernel_total = _empty_kernel_breakdown()
-                        for step in range(shape.decode_steps):
-                            out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_single(
-                                local_x_steps[step],
-                                k_cache,
-                                v_cache,
-                                weights,
-                                num_heads=shape.num_heads,
-                                max_cache_len=shape.context_len,
-                            )
-                            comm_total.merge_(comm)
-                            _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
-                        return out, comm_total, kernel_total
+                        def decode_runner_single() -> tuple[
+                            torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]
+                        ]:
+                            k_cache = k_cache_init.clone()
+                            v_cache = v_cache_init.clone()
+                            out = torch.zeros((shape.concurrency, 1, shape.model_dim), dtype=dtype, device=device)
+                            comm_total = ks.CommMetrics()
+                            kernel_total = _empty_kernel_breakdown()
+                            for step in range(shape.decode_steps):
+                                out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_single(
+                                    local_x_steps[step],
+                                    k_cache,
+                                    v_cache,
+                                    weights,
+                                    num_heads=shape.num_heads,
+                                    max_cache_len=shape.context_len,
+                                )
+                                comm_total.merge_(comm)
+                                _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
+                            return out, comm_total, kernel_total
 
-                    runner = decode_runner_single
-                    kv_cache_bytes = float(
-                        k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
-                    )
-                elif setup == "dual_die_tensor_optimized":
-                    local_x_steps = x_steps_global
-                    k_cache_init = k_cache_global.clone()
-                    v_cache_init = v_cache_global.clone()
-
-                    def decode_runner_tensor() -> tuple[torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]]:
-                        k_cache = k_cache_init.clone()
-                        v_cache = v_cache_init.clone()
-                        out = torch.zeros((shape.concurrency, 1, shape.model_dim), dtype=dtype, device=device)
-                        comm_total = ks.CommMetrics()
-                        kernel_total = _empty_kernel_breakdown()
-                        for step in range(shape.decode_steps):
-                            out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_tensor(
-                                local_x_steps[step],
-                                k_cache,
-                                v_cache,
-                                weights,
-                                num_heads=shape.num_heads,
-                                attention_optimized=tensor_attention_optimized_decode,
-                                attention_pipelined=config.tensor_attention_pipelined_decode,
-                                attention_tile_q=config.tensor_attention_tile_q,
-                                attention_tile_k=config.tensor_attention_tile_k,
-                                attention_reduce_group_k=config.tensor_attention_reduce_group_k,
-                                dtype_bytes=dtype_bytes,
-                                ctx=ctx,
-                                device=device,
-                                max_cache_len=shape.context_len,
-                            )
-                            comm_total.merge_(comm)
-                            _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
-                        return out, comm_total, kernel_total
-
-                    runner = decode_runner_tensor
-                    kv_cache_bytes = float(
-                        k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
-                    )
-                else:
-                    local_batch = shape.concurrency // ctx.world_size
-                    b_start = ctx.rank * local_batch
-                    b_end = b_start + local_batch
-                    local_x_steps = x_steps_global[:, b_start:b_end]
-                    k_cache_init = k_cache_global[b_start:b_end].clone()
-                    v_cache_init = v_cache_global[b_start:b_end].clone()
-
-                    def decode_runner_request_sharded() -> tuple[
-                        torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]
-                    ]:
-                        k_cache = k_cache_init.clone()
-                        v_cache = v_cache_init.clone()
-                        out = torch.zeros((local_batch, 1, shape.model_dim), dtype=dtype, device=device)
-                        comm_total = ks.CommMetrics()
-                        kernel_total = _empty_kernel_breakdown()
-                        for step in range(shape.decode_steps):
-                            out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_single(
-                                local_x_steps[step],
-                                k_cache,
-                                v_cache,
-                                weights,
-                                num_heads=shape.num_heads,
-                                max_cache_len=shape.context_len,
-                            )
-                            comm_total.merge_(comm)
-                            _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
-                        return out, comm_total, kernel_total
-
-                    runner = decode_runner_request_sharded
-                    kv_cache_bytes = float(
-                        k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
-                    )
-
-                if ctx.is_primary:
-                    attention_mode = "single_rank"
-                    if setup == "dual_die_tensor_optimized":
-                        attention_mode = (
-                            "optimized" if tensor_attention_optimized_decode else "naive_fallback"
+                        runner = decode_runner_single
+                        kv_cache_bytes = float(
+                            k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
                         )
-                    elif setup == "dual_die_request_sharded":
-                        attention_mode = "request_sharded"
-                    print(
-                        "[phase-study] decode "
-                        f"setup={setup} concurrency={shape.concurrency} context_len={shape.context_len} "
-                        f"decode_steps={shape.decode_steps} model_dim={shape.model_dim} "
-                        f"num_heads={shape.num_heads} attention={attention_mode}",
-                        flush=True,
+                    elif setup == "dual_die_tensor_optimized":
+                        local_x_steps = x_steps_global
+                        k_cache_init = k_cache_global.clone()
+                        v_cache_init = v_cache_global.clone()
+
+                        def decode_runner_tensor() -> tuple[
+                            torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]
+                        ]:
+                            k_cache = k_cache_init.clone()
+                            v_cache = v_cache_init.clone()
+                            out = torch.zeros((shape.concurrency, 1, shape.model_dim), dtype=dtype, device=device)
+                            comm_total = ks.CommMetrics()
+                            kernel_total = _empty_kernel_breakdown()
+                            for step in range(shape.decode_steps):
+                                out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_tensor(
+                                    local_x_steps[step],
+                                    k_cache,
+                                    v_cache,
+                                    weights,
+                                    num_heads=shape.num_heads,
+                                    attention_optimized=tensor_attention_optimized_decode,
+                                    attention_pipelined=config.tensor_attention_pipelined_decode,
+                                    attention_tile_q=config.tensor_attention_tile_q,
+                                    attention_tile_k=config.tensor_attention_tile_k,
+                                    attention_reduce_group_k=config.tensor_attention_reduce_group_k,
+                                    dtype_bytes=dtype_bytes,
+                                    ctx=ctx,
+                                    device=device,
+                                    max_cache_len=shape.context_len,
+                                )
+                                comm_total.merge_(comm)
+                                _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
+                            return out, comm_total, kernel_total
+
+                        runner = decode_runner_tensor
+                        kv_cache_bytes = float(
+                            k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
+                        )
+                    else:
+                        local_batch = shape.concurrency // ctx.world_size
+                        b_start = ctx.rank * local_batch
+                        b_end = b_start + local_batch
+                        local_x_steps = x_steps_global[:, b_start:b_end]
+                        k_cache_init = k_cache_global[b_start:b_end].clone()
+                        v_cache_init = v_cache_global[b_start:b_end].clone()
+
+                        def decode_runner_request_sharded() -> tuple[
+                            torch.Tensor, ks.CommMetrics, dict[str, dict[str, float]]
+                        ]:
+                            k_cache = k_cache_init.clone()
+                            v_cache = v_cache_init.clone()
+                            out = torch.zeros((local_batch, 1, shape.model_dim), dtype=dtype, device=device)
+                            comm_total = ks.CommMetrics()
+                            kernel_total = _empty_kernel_breakdown()
+                            for step in range(shape.decode_steps):
+                                out, k_cache, v_cache, comm, kernel_breakdown = _decode_step_single(
+                                    local_x_steps[step],
+                                    k_cache,
+                                    v_cache,
+                                    weights,
+                                    num_heads=shape.num_heads,
+                                    max_cache_len=shape.context_len,
+                                )
+                                comm_total.merge_(comm)
+                                _merge_kernel_breakdown(dst=kernel_total, src=kernel_breakdown)
+                            return out, comm_total, kernel_total
+
+                        runner = decode_runner_request_sharded
+                        kv_cache_bytes = float(
+                            k_cache_init.numel() * dtype_bytes + v_cache_init.numel() * dtype_bytes
+                        )
+
+                    if ctx.is_primary:
+                        attention_mode = "single_rank"
+                        if setup == "dual_die_tensor_optimized":
+                            attention_mode = (
+                                "optimized" if tensor_attention_optimized_decode else "naive_fallback"
+                            )
+                        elif setup == "dual_die_request_sharded":
+                            attention_mode = "request_sharded"
+                        print(
+                            "[phase-study] decode "
+                            f"setup={setup} concurrency={shape.concurrency} context_len={shape.context_len} "
+                            f"decode_steps={shape.decode_steps} model_dim={shape.model_dim} "
+                            f"num_heads={shape.num_heads} attention={attention_mode}",
+                            flush=True,
+                        )
+
+                    (
+                        out,
+                        total_s,
+                        compute_s,
+                        comm_s,
+                        overlap_pct,
+                        comm_bytes,
+                        link_gbps,
+                        kernel_series,
+                        collective_samples,
+                    ) = _bench_runner(
+                        runner,
+                        warmup_iters=config.warmup_iters,
+                        measure_iters=config.measure_iters,
+                        device=device,
                     )
 
-                (
-                    out,
-                    total_s,
-                    compute_s,
-                    comm_s,
-                    overlap_pct,
-                    comm_bytes,
-                    link_gbps,
-                    kernel_series,
-                    collective_samples,
-                ) = _bench_runner(
-                    runner,
-                    warmup_iters=config.warmup_iters,
-                    measure_iters=config.measure_iters,
-                    device=device,
-                )
+                    if setup == "dual_die_request_sharded":
+                        out_full = _gather_batch_tensor(out, ctx=ctx, device=device)
+                    else:
+                        out_full = out
 
-                if setup == "dual_die_request_sharded":
-                    out_full = _gather_batch_tensor(out, ctx=ctx, device=device)
-                else:
-                    out_full = out
-
-                max_abs, max_rel = _validate_correctness(
-                    setup=setup,
-                    reference=ref_out,
-                    candidate=out_full,
-                    enforce=config.enforce_correctness,
-                    abs_tol=config.correctness_abs_tol,
-                    rel_tol=config.correctness_rel_tol,
-                    eps=eps,
-                )
-
-                if not ctx.is_primary:
-                    distributed_barrier(ctx)
-                    continue
-
-                p50_ms = _percentile_ms(total_s, 50)
-                p90_ms = _percentile_ms(total_s, 90)
-                tokens = shape.concurrency * shape.decode_steps
-                throughput = tokens / (p50_ms / 1000.0) if p50_ms > 0 else 0.0
-                achieved_link_gbps_p50 = _percentile(link_gbps, 50)
-                fabric_peak = float(fabric_summary.get("peak_gbps", 0.0))
-                link_util_pct = (achieved_link_gbps_p50 / fabric_peak * 100.0) if fabric_peak > 0 else 0.0
-
-                record = {
-                    "timestamp": _timestamp_utc(),
-                    "phase": "decode",
-                    "setup": setup,
-                    "device": device_name,
-                    "dtype": config.dtype,
-                    "batch": shape.concurrency,
-                    "seq_len": 1,
-                    "context_len": shape.context_len,
-                    "decode_steps": shape.decode_steps,
-                    "model_dim": shape.model_dim,
-                    "num_heads": shape.num_heads,
-                    "latency_ms_p50": round(float(p50_ms), 6),
-                    "latency_ms_p90": round(float(p90_ms), 6),
-                    "compute_ms_p50": round(float(_percentile_ms(compute_s, 50)), 6),
-                    "communication_ms_p50": round(float(_percentile_ms(comm_s, 50)), 6),
-                    "overlap_pct_p50": round(float(_percentile(overlap_pct, 50)), 6),
-                    "throughput_tokens_per_s": round(float(throughput), 6),
-                    "communication_bytes": round(float(np.mean(comm_bytes)), 2),
-                    "achieved_link_gbps_p50": round(float(achieved_link_gbps_p50), 6),
-                    "link_utilization_pct_p50": round(float(link_util_pct), 6),
-                    "fabric_peak_gbps": round(float(fabric_peak), 6),
-                    "kv_cache_bytes_per_rank": round(float(kv_cache_bytes), 2),
-                    "max_abs_err": round(float(max_abs), 8),
-                    "max_rel_err": round(float(max_rel), 8),
-                }
-                missing = [col for col in REQUIRED_COLUMNS if col not in record]
-                if missing:
-                    raise RuntimeError(f"Missing metrics columns: {missing}")
-                records.append(record)
-                kernel_phase_records.extend(
-                    _build_kernel_phase_rows(
-                        phase="decode",
+                    max_abs, max_rel = _validate_correctness(
                         setup=setup,
-                        device_name=device_name,
-                        dtype_name=config.dtype,
-                        batch=shape.concurrency,
-                        seq_len=1,
-                        context_len=shape.context_len,
-                        decode_steps=shape.decode_steps,
-                        model_dim=shape.model_dim,
-                        num_heads=shape.num_heads,
-                        fabric_peak_gbps=fabric_peak,
-                        kernel_series=kernel_series,
+                        reference=ref_out,
+                        candidate=out_full,
+                        enforce=config.enforce_correctness,
+                        abs_tol=config.correctness_abs_tol,
+                        rel_tol=config.correctness_rel_tol,
+                        eps=eps,
                     )
-                )
-                collectives_rows.append(
-                    {
+
+                    if not ctx.is_primary:
+                        continue
+
+                    p50_ms = _percentile_ms(total_s, 50)
+                    p90_ms = _percentile_ms(total_s, 90)
+                    tokens = shape.concurrency * shape.decode_steps
+                    throughput = tokens / (p50_ms / 1000.0) if p50_ms > 0 else 0.0
+                    achieved_link_gbps_p50 = _percentile(link_gbps, 50)
+                    fabric_peak = float(fabric_summary.get("peak_gbps", 0.0))
+                    link_util_pct = (achieved_link_gbps_p50 / fabric_peak * 100.0) if fabric_peak > 0 else 0.0
+
+                    record = {
                         "timestamp": _timestamp_utc(),
                         "phase": "decode",
                         "setup": setup,
+                        "device": device_name,
+                        "dtype": config.dtype,
                         "batch": shape.concurrency,
                         "seq_len": 1,
                         "context_len": shape.context_len,
                         "decode_steps": shape.decode_steps,
                         "model_dim": shape.model_dim,
                         "num_heads": shape.num_heads,
-                        "ops": _summarize_collective_samples(collective_samples),
+                        "latency_ms_p50": round(float(p50_ms), 6),
+                        "latency_ms_p90": round(float(p90_ms), 6),
+                        "compute_ms_p50": round(float(_percentile_ms(compute_s, 50)), 6),
+                        "communication_ms_p50": round(float(_percentile_ms(comm_s, 50)), 6),
+                        "overlap_pct_p50": round(float(_percentile(overlap_pct, 50)), 6),
+                        "throughput_tokens_per_s": round(float(throughput), 6),
+                        "communication_bytes": round(float(np.mean(comm_bytes)), 2),
+                        "achieved_link_gbps_p50": round(float(achieved_link_gbps_p50), 6),
+                        "link_utilization_pct_p50": round(float(link_util_pct), 6),
+                        "fabric_peak_gbps": round(float(fabric_peak), 6),
+                        "kv_cache_bytes_per_rank": round(float(kv_cache_bytes), 2),
+                        "max_abs_err": round(float(max_abs), 8),
+                        "max_rel_err": round(float(max_rel), 8),
                     }
-                )
-                if ctx.enabled:
-                    distributed_barrier(ctx)
+                    missing = [col for col in REQUIRED_COLUMNS if col not in record]
+                    if missing:
+                        raise RuntimeError(f"Missing metrics columns: {missing}")
+                    records.append(record)
+                    kernel_phase_records.extend(
+                        _build_kernel_phase_rows(
+                            phase="decode",
+                            setup=setup,
+                            device_name=device_name,
+                            dtype_name=config.dtype,
+                            batch=shape.concurrency,
+                            seq_len=1,
+                            context_len=shape.context_len,
+                            decode_steps=shape.decode_steps,
+                            model_dim=shape.model_dim,
+                            num_heads=shape.num_heads,
+                            fabric_peak_gbps=fabric_peak,
+                            kernel_series=kernel_series,
+                        )
+                    )
+                    collectives_rows.append(
+                        {
+                            "timestamp": _timestamp_utc(),
+                            "phase": "decode",
+                            "setup": setup,
+                            "batch": shape.concurrency,
+                            "seq_len": 1,
+                            "context_len": shape.context_len,
+                            "decode_steps": shape.decode_steps,
+                            "model_dim": shape.model_dim,
+                            "num_heads": shape.num_heads,
+                            "ops": _summarize_collective_samples(collective_samples),
+                        }
+                    )
+                except Exception as exc:
+                    if not config.continue_on_runtime_error:
+                        raise
+                    if ctx.is_primary:
+                        print(
+                            "[phase-study] warning: decode setup failed and will be skipped: "
+                            f"setup={setup} concurrency={shape.concurrency} context_len={shape.context_len} "
+                            f"decode_steps={shape.decode_steps} model_dim={shape.model_dim} "
+                            f"num_heads={shape.num_heads} error={type(exc).__name__}: {exc}",
+                            flush=True,
+                        )
+                        if config.record_runtime_failures:
+                            runtime_failures.append(
+                                {
+                                    "timestamp": _timestamp_utc(),
+                                    "phase": "decode",
+                                    "setup": setup,
+                                    "batch": int(shape.concurrency),
+                                    "seq_len": 1,
+                                    "context_len": int(shape.context_len),
+                                    "decode_steps": int(shape.decode_steps),
+                                    "model_dim": int(shape.model_dim),
+                                    "num_heads": int(shape.num_heads),
+                                    "error_type": type(exc).__name__,
+                                    "error_message": str(exc),
+                                }
+                            )
+                finally:
+                    if ctx.enabled:
+                        distributed_barrier(ctx)
 
         if ctx.is_primary:
             _write_metrics(run_dir, records)
@@ -1853,6 +2008,10 @@ def run_phase_study(
             _write_decode_slo_summary(run_dir, decode_slo)
             break_even = _build_break_even_summary(records)
             _write_break_even_summary(run_dir, break_even)
+            capacity_frontier = _build_capacity_frontier(records, config.capacity_slo_ms)
+            _write_capacity_frontier(run_dir, capacity_frontier)
+            if config.record_runtime_failures and runtime_failures:
+                _write_runtime_failures(run_dir, runtime_failures)
 
             repo_root = Path(__file__).resolve().parents[3]
             manifest = build_run_manifest(
@@ -1873,6 +2032,10 @@ def run_phase_study(
                     "distributed_backend": ctx.backend,
                     "distributed_world_size": ctx.world_size,
                     "decode_slo_ms": list(config.decode_slo_ms),
+                    "capacity_slo_ms": float(config.capacity_slo_ms),
+                    "continue_on_runtime_error": bool(config.continue_on_runtime_error),
+                    "record_runtime_failures": bool(config.record_runtime_failures),
+                    "runtime_failure_count": int(len(runtime_failures)),
                     "correctness_abs_tol": config.correctness_abs_tol,
                     "correctness_rel_tol": config.correctness_rel_tol,
                     "fabric_peak_gbps": float(fabric_summary.get("peak_gbps", 0.0)),

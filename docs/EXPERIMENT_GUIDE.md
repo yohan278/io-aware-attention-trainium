@@ -77,6 +77,15 @@ torchrun --nproc_per_node=2 scripts/run_phase_study.py \
   --distributed
 ```
 
+Service-scale day-1 variant (throughput/capacity focus):
+
+```bash
+torchrun --nproc_per_node=2 scripts/run_phase_study.py \
+  --config configs/experiments/trn2_inference_service_day1.yaml \
+  --device trainium \
+  --distributed
+```
+
 ## 3) Plotting
 
 Kernel study plots:
@@ -94,6 +103,25 @@ Phase study plots:
 python scripts/plot_phase_study.py \
   --metrics-csv <run_dir>/metrics.csv \
   --kernel-phase-csv <run_dir>/kernel_phase_metrics.csv \
+  --out-dir results/plots \
+  --prefix <name>
+```
+
+Capacity frontier plots:
+
+```bash
+python scripts/plot_capacity_frontier.py \
+  --metrics-csv <run_dir>/metrics.csv \
+  --capacity-csv <run_dir>/capacity_frontier.csv \
+  --out-dir results/plots \
+  --prefix <name>
+```
+
+Mixed-traffic simulation:
+
+```bash
+python scripts/simulate_mixed_traffic.py \
+  --metrics-csv <run_dir>/metrics.csv \
   --out-dir results/plots \
   --prefix <name>
 ```
@@ -142,7 +170,10 @@ Each run directory (`results/<run_id>/`) may include:
 - phase-specific summaries:
   - `break_even_summary.csv`, `break_even_summary.md`
   - `decode_slo_summary.csv`, `decode_slo_summary.md`
+  - `capacity_frontier.csv`, `capacity_frontier.md`
   - `kernel_phase_metrics.csv`, `kernel_phase_metrics.jsonl`
+- fault-tolerant sweep diagnostics:
+  - `runtime_failures.jsonl` (written when enabled and failures occur)
 
 ## 7) Public Repo Policy
 
