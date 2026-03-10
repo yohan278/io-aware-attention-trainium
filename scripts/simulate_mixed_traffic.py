@@ -24,6 +24,12 @@ COLORS = {
     "single->request": "#2ca02c",
     "request->request": "#1b7f3a",
 }
+POLICY_LABELS = {
+    "single->single": "single→single",
+    "single->tensor": "single→tensor",
+    "single->request": "single→request",
+    "request->request": "request→request",
+}
 
 
 @dataclass(frozen=True)
@@ -247,20 +253,57 @@ def _plot_goodput(rows: list[dict[str, float]], out_path: Path) -> None:
     x = np.arange(len(policies))
     bars = ax.bar(x, goodput, color=[COLORS.get(policy, "#808080") for policy in policies], alpha=0.9)
     ax.set_xticks(x)
-    ax.set_xticklabels(policies)
+    ax.set_xticklabels([POLICY_LABELS.get(policy, policy) for policy in policies])
     ax.set_ylabel("Goodput (tokens/s under SLO)")
     ax.set_title("Mixed-Traffic Service Goodput by Deployment Policy")
     ax.grid(axis="y", alpha=0.25)
 
-    for bar, ratio in zip(bars, on_time_ratio):
+    y_pad = max(40.0, max(goodput, default=0.0) * 0.012)
+    for bar, tokens_per_s, ratio in zip(bars, goodput, on_time_ratio):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height(),
-            f"{ratio:.1f}% on-time",
+            bar.get_height() + y_pad,
+            f"{tokens_per_s:.0f} tok/s\n{ratio:.1f}% on-time",
             ha="center",
             va="bottom",
             fontsize=9,
         )
+    ax.set_ylim(0.0, max(goodput, default=0.0) + y_pad * 5.0)
+
+    fig.savefig(out_path, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _plot_policy_frontier(rows: list[dict[str, float]], out_path: Path) -> None:
+    policies = [str(row["policy"]) for row in rows]
+    goodput = np.array([float(row["goodput_tokens_per_s"]) for row in rows], dtype=float)
+    on_time_pct = np.array([float(row["on_time_ratio"]) * 100.0 for row in rows], dtype=float)
+
+    fig, ax = plt.subplots(figsize=(8.6, 5), constrained_layout=True)
+    for policy, x, y in zip(policies, on_time_pct, goodput):
+        ax.scatter(
+            float(x),
+            float(y),
+            s=160.0,
+            color=COLORS.get(policy, "#808080"),
+            edgecolors="black",
+            linewidths=0.35,
+            alpha=0.9,
+        )
+        ax.annotate(
+            POLICY_LABELS.get(policy, policy),
+            (float(x), float(y)),
+            fontsize=9,
+            xytext=(8, 6),
+            textcoords="offset points",
+        )
+
+    ax.set_xlabel("On-time service (%)")
+    ax.set_ylabel("Goodput (tokens/s under SLO)")
+    ax.set_title("Policy Frontier: Goodput vs On-Time Service")
+    ax.set_xlim(0.0, 100.0)
+    ax.set_ylim(0.0, max(1.0, float(goodput.max(initial=0.0)) * 1.12))
+    ax.grid(alpha=0.25)
 
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
@@ -310,6 +353,7 @@ def main() -> int:
     csv_path = out_dir / f"{args.prefix}_service_trace_summary.csv"
     md_path = out_dir / f"{args.prefix}_service_trace_summary.md"
     plot_path = out_dir / f"{args.prefix}_mixed_trace_goodput.png"
+    frontier_path = out_dir / f"{args.prefix}_mixed_trace_frontier.png"
     req_stream_path = out_dir / f"{args.prefix}_service_trace_requests.json"
 
     fields = [
@@ -368,10 +412,12 @@ def main() -> int:
     req_stream_path.write_text(json.dumps(request_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     _plot_goodput(summary_rows, plot_path)
+    _plot_policy_frontier(summary_rows, frontier_path)
 
     print(csv_path)
     print(md_path)
     print(plot_path)
+    print(frontier_path)
     return 0
 
 
