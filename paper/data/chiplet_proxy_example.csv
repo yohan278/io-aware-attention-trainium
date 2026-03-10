@@ -1,0 +1,11 @@
+metric,value
+seq_len,16
+model_dim,8
+value_dim,8
+seed,7
+max_abs_error,2.082e-17
+state_words,320
+score_only_words,256
+score_value_words,2304
+score_only_ratio_vs_state,0.8
+score_value_ratio_vs_state,7.2

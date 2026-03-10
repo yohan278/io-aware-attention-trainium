@@ -1,0 +1,73 @@
+{
+  "chiplet_proxy_example": {
+    "seq_len": 16,
+    "model_dim": 8,
+    "value_dim": 8,
+    "seed": 7,
+    "max_abs_error": 2.082e-17,
+    "state_words": 320,
+    "score_only_words": 256,
+    "score_value_words": 2304,
+    "score_only_ratio_vs_state": 0.8,
+    "score_value_ratio_vs_state": 7.2
+  },
+  "decode_c8": {
+    "single_p50_ms": 48.704736,
+    "single_tok_s": 657.020295,
+    "request_p50_ms": 43.423378,
+    "request_tok_s": 736.93024,
+    "tensor_p50_ms": 173.642007,
+    "tensor_tok_s": 184.287204,
+    "request_latency_ratio_vs_single": 0.8915637690757631,
+    "request_throughput_ratio_vs_single": 1.1216247741631786,
+    "tensor_latency_ratio_vs_single": 3.5651975816068484,
+    "tensor_throughput_ratio_vs_single": 0.28048936296556864
+  },
+  "decode_c16": {
+    "single_p50_ms": 52.781563,
+    "single_tok_s": 1212.544615,
+    "request_p50_ms": 40.722564,
+    "request_tok_s": 1571.610275,
+    "tensor_p50_ms": 184.205292,
+    "tensor_tok_s": 347.438443,
+    "request_latency_ratio_vs_single": 0.7715300890199103,
+    "request_throughput_ratio_vs_single": 1.2961257305983747,
+    "tensor_latency_ratio_vs_single": 3.489955233042265,
+    "tensor_throughput_ratio_vs_single": 0.2865366261182893
+  },
+  "prefill_s4096": {
+    "single_p50_ms": 36.717262,
+    "request_p50_ms": 40.61448,
+    "tensor_p50_ms": 1646.050909,
+    "request_latency_ratio_vs_single": 1.106141302148292,
+    "tensor_latency_ratio_vs_single": 44.83043722050953
+  },
+  "single->single": {
+    "goodput_tokens_per_s": 8172.0888888888885,
+    "goodput_ratio_vs_single": 1.0,
+    "on_time_ratio": 0.5755879059350504,
+    "p90_ms": 526.2139452002082
+  },
+  "single->request": {
+    "goodput_tokens_per_s": 11303.822222222223,
+    "goodput_ratio_vs_single": 1.3832231117298992,
+    "on_time_ratio": 0.9137737961926092,
+    "p90_ms": 235.58571762818448
+  },
+  "request->request": {
+    "goodput_tokens_per_s": 11276.8,
+    "goodput_ratio_vs_single": 1.3799164636268708,
+    "on_time_ratio": 0.9092945128779395,
+    "p90_ms": 241.70883904463116
+  },
+  "single->tensor": {
+    "goodput_tokens_per_s": 159.2888888888889,
+    "goodput_ratio_vs_single": 0.019491820396797775,
+    "on_time_ratio": 0.011594202898550725,
+    "p90_ms": 2346.356621350358
+  },
+  "moe_secondary": {
+    "median_locality_gain": 1.0337274792948294,
+    "median_remote_dispatch_reduction_abs": 0.1875
+  }
+}

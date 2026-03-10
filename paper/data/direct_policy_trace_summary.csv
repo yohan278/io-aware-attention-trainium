@@ -1,0 +1,4 @@
+timestamp,policy,prefill_setup,decode_setup,device,dtype,batch,context_len,output_tokens,request_slo_ms,latency_ms_p50,latency_ms_p90,prefill_ms_p50,decode_ms_p50,requests_per_s_p50,tokens_per_s_p50,on_time_ratio,max_abs_err,max_rel_err
+2026-03-10T04:49:41Z,single->single,single_die,single_die,trainium,fp32,16,2048,128,1500.0,1830.153291,1841.060269,53.107316,1776.804212,8.742437,1119.031947,0.0,0.0,0.0
+2026-03-10T04:49:52Z,single->request,single_die,dual_die_request_sharded,trainium,fp32,16,2048,128,1500.0,1388.493804,1399.855128,53.197019,1335.296785,11.523278,1474.979574,1.0,0.00048828,2.142e-05
+2026-03-10T04:50:01Z,request->request,dual_die_request_sharded,dual_die_request_sharded,trainium,fp32,16,2048,128,1500.0,1376.472835,1389.699604,28.376458,1348.096377,11.623913,1487.860819,1.0,0.00048828,2.142e-05
