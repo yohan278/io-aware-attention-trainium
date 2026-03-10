@@ -254,6 +254,28 @@ Current committed public plots:
 - `results/plots/public_moe_mask23_remote_dispatch_ratio.png`
 - `results/plots/public_moe_mask23_locality_gain.png`
 
+### Plot Gallery
+
+Decode frontier (measured):
+
+![Decode SLO Frontier](results/plots/public_service_decode_slo_frontier.png)
+
+Direct end-to-end policy trace (measured):
+
+![Direct Policy Trace](results/plots/public_service_direct_policy_trace.png)
+
+Dense per-request evidence (measured samples):
+
+![Dense Direct Trace Points](results/plots/public_service_dual_dense_points.png)
+
+Dense sharded-serving load analysis (multi-request queue simulation from measured service samples):
+
+![Dense Sharded Serving Analysis](results/plots/public_service_sharded_dense_analysis.png)
+
+Mixed-traffic goodput (simulated):
+
+![Mixed Traffic Goodput](results/plots/public_service_mixed_trace_goodput.png)
+
 Each run directory may include:
 
 - `metrics.csv`, `metrics.jsonl`
