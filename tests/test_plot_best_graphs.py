@@ -96,3 +96,4 @@ def test_build_hybrid_policy_rows_uses_mixed_prefill_decode_setups() -> None:
     assert by_policy["single->request"]["prefill_per_request_ms"] == 10.0
     assert by_policy["single->request"]["decode_tail_ms"] < by_policy["single->single"]["decode_tail_ms"]
     assert by_policy["single->tensor"]["total_request_ms"] > by_policy["single->single"]["total_request_ms"]
+    assert by_policy["single->request"]["requests_per_s"] > by_policy["single->single"]["requests_per_s"]

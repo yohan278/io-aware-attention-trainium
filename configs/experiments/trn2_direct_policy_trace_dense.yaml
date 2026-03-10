@@ -1,0 +1,23 @@
+device: trainium
+dtype: fp32
+seed: 123
+warmup_iters: 2
+measure_iters: 40
+distributed: true
+dual_world_size: 2
+request_slo_ms: 1500.0
+policies:
+  - single->single
+  - single->request
+
+enforce_correctness: true
+correctness_abs_tol: 0.03
+correctness_rel_tol: 0.03
+
+trace:
+  batch: 16
+  context_len: 2048
+  output_tokens: 128
+  model_dim: 1024
+  num_heads: 16
+  mlp_ratio: 4

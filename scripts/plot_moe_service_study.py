@@ -15,6 +15,27 @@ COLORS = {
     "dual_die_moe_naive": "#ff7f0e",
     "dual_die_moe_locality": "#2ca02c",
 }
+LABELS = {
+    "single_die": "single",
+    "dual_die_moe_naive": "dual-naive",
+    "dual_die_moe_locality": "dual-locality",
+}
+
+
+def _display_setup(name: str) -> str:
+    return LABELS.get(str(name), str(name).replace("_", "-"))
+
+
+def _annotate_totals(
+    ax: plt.Axes,
+    *,
+    x: np.ndarray,
+    totals: np.ndarray,
+    labels: list[str],
+    y_pad: float,
+) -> None:
+    for idx, total in enumerate(totals):
+        ax.text(float(x[idx]), float(total) + float(y_pad), labels[idx], ha="center", va="bottom", fontsize=8)
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,7 +115,7 @@ def _plot_decode_slo_frontier(df: pd.DataFrame, out_path: Path) -> bool:
                 for slo in slos:
                     row = sub[sub["slo_ms"] == slo]
                     ys.append(float(row.iloc[0]["best_throughput_tokens_per_s"]) if not row.empty else np.nan)
-                ax.plot(slos, ys, marker="o", linewidth=2, color=COLORS[setup], label=setup)
+                ax.plot(slos, ys, marker="o", linewidth=2, color=COLORS[setup], label=_display_setup(setup))
 
             ax.set_title(f"ctx={context}, skew={skew:.2f}")
             ax.set_xlabel("SLO p90 latency (ms)")
@@ -104,7 +125,7 @@ def _plot_decode_slo_frontier(df: pd.DataFrame, out_path: Path) -> bool:
     handles, labels = axes[0][0].get_legend_handles_labels()
     if handles:
         fig.legend(handles, labels, ncols=3, loc="upper center", bbox_to_anchor=(0.5, 1.03))
-    fig.suptitle("MoE Decode Throughput-at-SLO Frontier", y=1.05)
+    fig.suptitle("MoE Decode Throughput under SLO", y=1.05)
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
     return True
@@ -135,12 +156,12 @@ def _plot_capacity_frontier(df: pd.DataFrame, out_path: Path) -> bool:
             for context in contexts:
                 row = sub[sub["context_len"].astype(int) == int(context)]
                 ys.append(float(row.iloc[0]["max_feasible_concurrency"]) if not row.empty else np.nan)
-            ax.bar(x + (idx - 1) * width, ys, width=width, color=COLORS[setup], label=setup)
+            ax.bar(x + (idx - 1) * width, ys, width=width, color=COLORS[setup], label=_display_setup(setup))
 
         ax.set_xticks(x)
         ax.set_xticklabels([str(c) for c in contexts])
         ax.set_xlabel("Context length")
-        ax.set_ylabel("Max feasible concurrency")
+        ax.set_ylabel("Max SLO-feasible concurrency")
         ax.set_title(f"routing_skew={skew:.2f}")
         ax.grid(axis="y", alpha=0.25)
 
@@ -178,16 +199,16 @@ def _plot_locality_gain(metrics: pd.DataFrame, out_path: Path) -> bool:
     axes[0].plot(by_skew["routing_skew"], by_skew["locality_speedup"], marker="o", linewidth=2, color="#2ca02c")
     axes[0].axhline(1.0, color="black", linestyle="--", linewidth=1)
     axes[0].set_xlabel("Routing skew")
-    axes[0].set_ylabel("Throughput ratio (locality/naive)")
-    axes[0].set_title("Median Locality Gain vs Routing Skew")
+    axes[0].set_ylabel("Throughput ratio (dual-locality / dual-naive)")
+    axes[0].set_title("Locality Gain vs Routing Skew")
     axes[0].grid(alpha=0.25)
 
     by_batch = merged.groupby("batch", as_index=False)["locality_speedup"].median().sort_values("batch")
     axes[1].plot(by_batch["batch"], by_batch["locality_speedup"], marker="o", linewidth=2, color="#2ca02c")
     axes[1].axhline(1.0, color="black", linestyle="--", linewidth=1)
     axes[1].set_xlabel("Concurrency")
-    axes[1].set_ylabel("Throughput ratio (locality/naive)")
-    axes[1].set_title("Median Locality Gain vs Concurrency")
+    axes[1].set_ylabel("Throughput ratio (dual-locality / dual-naive)")
+    axes[1].set_title("Locality Gain vs Concurrency")
     axes[1].grid(alpha=0.25)
 
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
@@ -223,7 +244,7 @@ def _plot_remote_dispatch_ratio(metrics: pd.DataFrame, out_path: Path) -> bool:
         for skew in skews:
             row = sub[sub["routing_skew"] == skew]
             ys.append(float(row.iloc[0]["remote_dispatch_ratio_p50"]) if not row.empty else np.nan)
-        ax.bar(x + (idx - 0.5) * width, ys, width=width, color=COLORS[setup], label=setup)
+        ax.bar(x + (idx - 0.5) * width, ys, width=width, color=COLORS[setup], label=_display_setup(setup))
         plotted = True
 
     if not plotted:
@@ -233,8 +254,8 @@ def _plot_remote_dispatch_ratio(metrics: pd.DataFrame, out_path: Path) -> bool:
     ax.set_xticks(x)
     ax.set_xticklabels([f"{s:.2f}" for s in skews])
     ax.set_xlabel("Routing skew")
-    ax.set_ylabel("Remote dispatch ratio p50")
-    ax.set_title("MoE Remote Dispatch Ratio")
+    ax.set_ylabel("Median remote-dispatch fraction")
+    ax.set_title("Locality Reduces Remote Expert Dispatch")
     ax.grid(axis="y", alpha=0.25)
     ax.legend()
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
@@ -268,7 +289,7 @@ def _plot_comm_breakdown(metrics: pd.DataFrame, out_path: Path) -> bool:
     compute_vals = []
     comm_vals = []
     for row in points:
-        labels.append(f"{row['setup']}\nctx={int(row['context_len'])},C={int(row['batch'])}")
+        labels.append(f"{_display_setup(str(row['setup']))}\nctx={int(row['context_len'])},C={int(row['batch'])}")
         compute_vals.append(float(row["compute_ms_p50"]))
         comm_vals.append(float(row["communication_ms_p50"]))
 
@@ -276,12 +297,21 @@ def _plot_comm_breakdown(metrics: pd.DataFrame, out_path: Path) -> bool:
     fig, ax = plt.subplots(figsize=(max(8, len(labels) * 2.4), 4.8), constrained_layout=True)
     ax.bar(x, compute_vals, color="#4C78A8", label="compute_ms_p50")
     ax.bar(x, comm_vals, bottom=compute_vals, color="#F58518", label="communication_ms_p50")
+    totals = np.asarray(compute_vals, dtype=float) + np.asarray(comm_vals, dtype=float)
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylabel("Latency contribution (ms)")
-    ax.set_title("MoE Compute vs Communication Breakdown")
+    ax.set_title("Representative MoE Compute vs Communication Breakdown")
     ax.grid(axis="y", alpha=0.25)
     ax.legend()
+    y_pad = max(1.0, float(totals.max(initial=0.0)) * 0.03)
+    total_labels = []
+    for compute_ms, comm_ms in zip(compute_vals, comm_vals):
+        total = float(compute_ms + comm_ms)
+        comm_share = (float(comm_ms) / total * 100.0) if total > 0 else 0.0
+        total_labels.append(f"{total:.1f} ms\n{comm_share:.0f}% comm")
+    _annotate_totals(ax, x=x, totals=totals, labels=total_labels, y_pad=y_pad)
+    ax.set_ylim(0.0, float(totals.max(initial=0.0)) + y_pad * 3.6)
     fig.savefig(out_path, dpi=180, bbox_inches="tight")
     plt.close(fig)
     return True

@@ -268,6 +268,12 @@ pytest -q
 - Contribution guide: `CONTRIBUTING.md`
 - Experiment guide: `docs/EXPERIMENT_GUIDE.md`
 - Experiment validation flow: `docs/EXPERIMENT_VALIDATION_DIAGRAM.md`
+- Evidence index: `EVIDENCE_INDEX.md`
+- Trn2 experiment summary: `docs/TRN2_EXPERIMENT_RESULTS.md`
+- Proposal/result alignment: `docs/PROPOSAL_VS_RESULTS_ALIGNMENT.md`
+- Cleanup and paper plan: `docs/REPO_CLEANUP_AND_PAPER_PLAN.md`
+- Paper draft: `paper/main.tex`
+- Paper notes and figure provenance: `paper/README.md`
 - Trn2 executed commands: `docs/TRN2_EXECUTED_COMMANDS.md`
 - Dual-die architecture diagrams: `docs/DUAL_DIE_COMPUTE_DIAGRAMS.md`
 - Trainium runbook: `docs/TRAINIUM_SELF_HOSTED.md`
