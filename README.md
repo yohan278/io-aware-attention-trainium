@@ -12,6 +12,18 @@ This repository contains:
 - A MoE service-scale decode study (router dispatch + expert MLP) with naive vs locality-aware dual-die routing.
 - Plotting and what-if modeling scripts for communication/overlap sensitivity.
 
+## Quick Reproduction
+
+Regenerate the committed public figures and paper-local copies from committed run artifacts:
+
+```bash
+bash scripts/reproduce.sh
+```
+
+This is the fastest artifact-level reproduction path (no new Trn2 run required).
+
+For full measurement reruns on Trn2, see `docs/REPRODUCIBILITY.md`.
+
 ## Repository Layout
 
 ```text
@@ -24,12 +36,15 @@ configs/
   benchmark/      # base benchmark configs
   experiments/    # kernel/phase study configs (smoke, strict, full)
 scripts/
+  reproduce.sh    # one-command artifact regeneration
   run_*.py        # experiment entrypoints
   plot_*.py       # visualization
   what_if_dual_die.py
+  README.md       # script-by-script usage
 docs/
   TRAINIUM_SELF_HOSTED.md
   AWS_CHIP_ADVICE_MEMO.md
+  REPRODUCIBILITY.md
 ```
 
 ## Quick Start (CPU Smoke)
@@ -266,6 +281,7 @@ pytest -q
 ## Documentation
 
 - Contribution guide: `CONTRIBUTING.md`
+- Reproducibility guide: `docs/REPRODUCIBILITY.md`
 - Experiment guide: `docs/EXPERIMENT_GUIDE.md`
 - Experiment validation flow: `docs/EXPERIMENT_VALIDATION_DIAGRAM.md`
 - Evidence index: `EVIDENCE_INDEX.md`
