@@ -6,15 +6,13 @@ cd "$ROOT"
 
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SKIP_MOE=0
-SKIP_PAPER_COPY=0
 
 for arg in "$@"; do
   case "$arg" in
     --skip-moe) SKIP_MOE=1 ;;
-    --skip-paper-copy) SKIP_PAPER_COPY=1 ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: bash scripts/reproduce.sh [--skip-moe] [--skip-paper-copy]" >&2
+      echo "Usage: bash scripts/reproduce.sh [--skip-moe]" >&2
       exit 2
       ;;
   esac
@@ -51,9 +49,9 @@ if [[ "$SKIP_MOE" -eq 0 ]]; then
   require_file "$MOE_RUN/capacity_frontier.csv"
 fi
 
-mkdir -p results/plots paper/figures paper/data
+mkdir -p results/plots
 
-echo "[1/6] Regenerate core service figures"
+echo "[1/4] Regenerate core service figures"
 "$PYTHON_BIN" scripts/plot_best_graphs.py \
   --phase-metrics-csv "$PHASE_RUN/metrics.csv" \
   --decode-slo-csv "$PHASE_RUN/decode_slo_summary.csv" \
@@ -63,16 +61,14 @@ echo "[1/6] Regenerate core service figures"
   --out-dir results/plots \
   --prefix public_service
 
-echo "[2/6] Regenerate mixed-traffic policy simulation"
+echo "[2/4] Regenerate mixed-traffic policy simulation"
 "$PYTHON_BIN" scripts/simulate_mixed_traffic.py \
   --metrics-csv "$PHASE_RUN/metrics.csv" \
   --out-dir results/plots \
   --prefix public_service
 
-echo "[3/6] Refresh direct-trace and dense sharded-serving analyses"
+echo "[3/4] Refresh direct-trace and dense sharded-serving analyses"
 cp "$DIRECT_RUN/direct_policy_trace.png" results/plots/public_service_direct_policy_trace.png
-cp "$DIRECT_RUN/direct_policy_trace_summary.csv" paper/data/direct_policy_trace_summary.csv
-cp "$DIRECT_RUN/direct_policy_trace_summary.md" paper/data/direct_policy_trace_summary.md
 
 "$PYTHON_BIN" scripts/plot_direct_trace_dense_points.py \
   --summary-csv "$DIRECT_DENSE_RUN/direct_policy_trace_summary.csv" \
@@ -93,7 +89,7 @@ cp "$DIRECT_RUN/direct_policy_trace_summary.md" paper/data/direct_policy_trace_s
   --out-md results/plots/public_service_sharded_dense_analysis.md
 
 if [[ "$SKIP_MOE" -eq 0 ]]; then
-  echo "[4/6] Regenerate MoE figures"
+  echo "[4/4] Regenerate MoE figures"
   "$PYTHON_BIN" scripts/plot_moe_service_study.py \
     --metrics-csv "$MOE_RUN/metrics.csv" \
     --decode-slo-csv "$MOE_RUN/decode_slo_summary.csv" \
@@ -101,20 +97,7 @@ if [[ "$SKIP_MOE" -eq 0 ]]; then
     --out-dir results/plots \
     --prefix public_moe_mask23
 else
-  echo "[4/6] Skipping MoE figure regeneration (--skip-moe)"
-fi
-
-echo "[5/6] Regenerate paper-only assets"
-"$PYTHON_BIN" scripts/generate_paper_assets.py
-
-echo "[6/6] Sync paper-local figure/data copies"
-if [[ "$SKIP_PAPER_COPY" -eq 0 ]]; then
-  cp results/plots/public_*.png paper/figures/
-  cp results/plots/public_service_dual_dense_points.csv paper/data/public_service_dual_dense_points.csv
-  cp results/plots/public_service_sharded_dense_queue.csv paper/data/public_service_sharded_dense_queue.csv
-  cp results/plots/public_service_sharded_dense_analysis.md paper/data/public_service_sharded_dense_analysis.md
-else
-  echo "Skipping paper copy sync (--skip-paper-copy)"
+  echo "[4/4] Skipping MoE figure regeneration (--skip-moe)"
 fi
 
 echo "Reproduction complete."

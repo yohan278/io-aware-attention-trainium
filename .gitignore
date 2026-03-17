@@ -9,6 +9,8 @@ __pycache__/
 *.pyc
 *.egg-info/
 
+paper/
+
 results/*
 !results/.gitkeep
 !results/plots/

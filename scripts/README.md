@@ -20,7 +20,7 @@ scripts/
 
 ## One-Command Reproduction
 
-Regenerates the committed public figures and paper-local copies from committed run artifacts:
+Regenerates the committed public figures from committed run artifacts:
 
 ```bash
 bash scripts/reproduce.sh

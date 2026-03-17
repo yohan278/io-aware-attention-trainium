@@ -278,6 +278,12 @@ def _plot_policy_frontier(rows: list[dict[str, float]], out_path: Path) -> None:
     policies = [str(row["policy"]) for row in rows]
     goodput = np.array([float(row["goodput_tokens_per_s"]) for row in rows], dtype=float)
     on_time_pct = np.array([float(row["on_time_ratio"]) * 100.0 for row in rows], dtype=float)
+    label_offsets = {
+        "single->single": (8, 8),
+        "single->request": (14, 18),
+        "request->request": (14, -10),
+        "single->tensor": (10, 8),
+    }
 
     fig, ax = plt.subplots(figsize=(8.6, 5), constrained_layout=True)
     for policy, x, y in zip(policies, on_time_pct, goodput):
@@ -294,7 +300,7 @@ def _plot_policy_frontier(rows: list[dict[str, float]], out_path: Path) -> None:
             POLICY_LABELS.get(policy, policy),
             (float(x), float(y)),
             fontsize=9,
-            xytext=(8, 6),
+            xytext=label_offsets.get(policy, (8, 6)),
             textcoords="offset points",
         )
 

@@ -31,13 +31,6 @@ Primary outputs:
 - `results/plots/public_service_mixed_trace_goodput.png`
 - `results/plots/public_moe_mask23_decode_slo_frontier.png`
 
-Paper-local sync outputs:
-
-- `paper/figures/public_*.png`
-- `paper/data/public_service_dual_dense_points.csv`
-- `paper/data/public_service_sharded_dense_queue.csv`
-- `paper/data/public_service_sharded_dense_analysis.md`
-
 ## 2) Measurement Reruns (Trn2)
 
 ### Environment sanity
@@ -86,4 +79,4 @@ python3 scripts/analyze_sharded_serving_dense.py \
 
 - Trainium runs can vary due compile cache warm state and host conditions. For paper-quality numbers, use at least one warm rerun and report exact run ID.
 - `direct_policy_trace` and `direct_policy_trace_dense` are the canonical sources for end-to-end serving sample distributions.
-- Composed and simulated plots are explicitly labeled as such in paper/docs.
+- Composed and simulated plots are explicitly labeled in the committed docs and figure titles.
